@@ -1,0 +1,111 @@
+@startuml
+title PU4: Zarejestruj nowe zlecenie naprawy (Szczegółowy Diagram Stanów UI)
+scale 800 width
+hide empty description
+
+' Stylizacja
+skinparam state {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+  BackgroundColor<<Loading>> LightGray
+  BackgroundColor<<Success>> LightGreen
+  BackgroundColor<<Error>> LightPink
+}
+
+[*] --> Inicjalizacja : Komponent Montowany (Mount)
+
+state Inicjalizacja {
+    [*] --> FetchingData : useEffect()
+    FetchingData : entry / api.clients.getAll()
+    FetchingData --> DaneZaladowane : Promise Resolved
+    DaneZaladowane : entry / setClients(data)
+}
+
+Inicjalizacja --> FormularzInteraktywny : Dane gotowe
+
+' Główny stan złożony z regionami współbieżnymi
+state "Formularz Interaktywny (UI)" as FormularzInteraktywny {
+
+    ' REGION 1: LOGIKA SELECTA
+    state "Obsługa Select (Klient)" as RegionSelect {
+        state "Select Zamknięty" as SelectClosed
+        state "Select Otwarty" as SelectOpen
+
+        [*] --> SelectClosed
+        SelectClosed --> SelectOpen : Kliknięcie (Trigger)
+
+        SelectOpen : entry / Render <SelectContent>
+        SelectOpen : entry / Wyświetl listę klientów
+
+        SelectOpen --> SelectClosed : Kliknięcie poza (Blur)
+        SelectOpen --> SelectClosed : Wybór Opcji\n[onValueChange] / setFormData(clientId)
+    }
+
+    --
+
+    ' REGION 2: LOGIKA PÓL TEKSTOWYCH
+    state "Pola Tekstowe (Device/Problem)" as RegionInput {
+        state "Idle (Czekanie)" as InputIdle
+        state "Focus (Pisanie)" as InputFocus
+
+        [*] --> InputIdle
+        InputIdle --> InputFocus : Kliknięcie/Tab (onFocus)
+        InputFocus --> InputIdle : Kliknięcie poza (onBlur)
+
+        InputFocus --> InputFocus : Wciskanie klawiszy\n[onChange] / setFormData(...)
+    }
+
+    --
+
+    ' REGION 3: PRZYCISK
+    state "Przycisk 'Utwórz Zlecenie'" as RegionButton {
+        state "Normalny" as BtnNormal
+        state "Najechany (Hover)" as BtnHover
+        state "Wciśnięty (Active)" as BtnActive
+
+        [*] --> BtnNormal
+        BtnNormal --> BtnHover : MouseEnter
+        BtnHover --> BtnNormal : MouseLeave
+        BtnHover --> BtnActive : MouseDown
+        BtnActive --> BtnHover : MouseUp
+    }
+}
+
+' Przejście główne - zatwierdzenie
+FormularzInteraktywny --> WalidacjaPrzegladarki : Kliknięcie Submit
+
+state WalidacjaPrzegladarki <<choice>>
+note left of WalidacjaPrzegladarki : Sprawdzenie atrybutów 'required'
+
+WalidacjaPrzegladarki --> FormularzInteraktywny : [Pola puste] / Wyświetl dymek walidacji
+WalidacjaPrzegladarki --> Procesowanie : [Pola wypełnione] / e.preventDefault()
+
+' Stan procesowania (Loading)
+state "Wysyłanie Danych (Loading)" as Procesowanie <<Loading>> {
+    state "Przygotowanie Danych" as Prep
+    state "Komunikacja API" as ApiCall
+
+    [*] --> Prep
+    Prep : entry / setLoading(true)
+    Prep : entry / Button Disabled
+
+    Prep --> ApiCall : Generuj numer zlecenia\napi.orders.create(orderData)
+
+    ApiCall --> Sukces : Promise Resolved
+    ApiCall --> Blad : Promise Rejected
+}
+
+' POPRAWIONA SEKCJA PONIŻEJ (BEZ KLAMR {})
+state "Zakończone Sukcesem" as Sukces <<Success>>
+Sukces : entry / alert('Zlecenie utworzone pomyślnie!')
+Sukces : entry / navigate('/office/orders')
+
+state "Błąd Zapisu" as Blad <<Error>>
+Blad : entry / console.error()
+Blad : entry / alert('Błąd tworzenia zlecenia.')
+Blad : entry / setLoading(false)
+
+Blad --> FormularzInteraktywny : Powrót do edycji
+Sukces --> [*] : Odmontowanie komponentu
+@enduml
