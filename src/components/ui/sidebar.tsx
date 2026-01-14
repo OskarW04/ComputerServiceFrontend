@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-refresh/only-export-components */
 
 import { Slot } from "@radix-ui/react-slot";
 import type { VariantProps } from "class-variance-authority";
@@ -91,8 +92,12 @@ function SidebarProvider({
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
-    isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
-  }, [isMobile, setOpen, setOpenMobile]);
+    if (isMobile) {
+      setOpenMobile(!openMobile);
+    } else {
+      setOpen((open) => !open);
+    }
+  }, [isMobile, openMobile, setOpen, setOpenMobile]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -611,7 +616,7 @@ function SidebarMenuSkeleton({
 }) {
   // Random width between 50 to 90%.
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
+    return "70%";
   }, []);
 
   return (

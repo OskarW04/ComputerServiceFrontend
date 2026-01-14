@@ -1,22 +1,34 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { api } from '@/data/api';
-import type { Client } from '@/data/schema';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { api } from "@/data/api";
+import type { Client } from "@/data/schema";
+import { useNavigate } from "react-router-dom";
 
 export default function OrderCreate() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    clientId: '',
-    deviceDescription: '',
-    problemDescription: ''
+    clientId: "",
+    deviceDescription: "",
+    problemDescription: "",
   });
 
   useEffect(() => {
@@ -33,14 +45,14 @@ export default function OrderCreate() {
     try {
       const orderData = {
         ...formData,
-        orderNumber: `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`
+        orderNumber: `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
       };
       await api.orders.create(orderData);
-      alert('Zlecenie utworzone pomyślnie!');
-      navigate('/office/orders');
+      alert("Zlecenie utworzone pomyślnie!");
+      navigate("/office/orders");
     } catch (error) {
-      console.error('Error creating order', error);
-      alert('Błąd tworzenia zlecenia.');
+      console.error("Error creating order", error);
+      alert("Błąd tworzenia zlecenia.");
     } finally {
       setLoading(false);
     }
@@ -57,15 +69,17 @@ export default function OrderCreate() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="client">Klient</Label>
-              <Select 
-                onValueChange={(value) => setFormData({...formData, clientId: value})}
+              <Select
+                onValueChange={(value) =>
+                  setFormData({ ...formData, clientId: value })
+                }
                 required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Wybierz klienta" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map(client => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.firstName} {client.lastName} ({client.phone})
                     </SelectItem>
@@ -76,29 +90,39 @@ export default function OrderCreate() {
 
             <div className="space-y-2">
               <Label htmlFor="device">Urządzenie</Label>
-              <Input 
-                id="device" 
+              <Input
+                id="device"
                 placeholder="np. Laptop Dell XPS 15"
                 value={formData.deviceDescription}
-                onChange={e => setFormData({...formData, deviceDescription: e.target.value})}
-                required 
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    deviceDescription: e.target.value,
+                  })
+                }
+                required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="problem">Opis Problemu</Label>
-              <Textarea 
-                id="problem" 
+              <Textarea
+                id="problem"
                 placeholder="Opisz usterkę..."
                 className="min-h-[100px]"
                 value={formData.problemDescription}
-                onChange={e => setFormData({...formData, problemDescription: e.target.value})}
-                required 
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    problemDescription: e.target.value,
+                  })
+                }
+                required
               />
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Tworzenie zlecenia...' : 'Utwórz Zlecenie'}
+              {loading ? "Tworzenie zlecenia..." : "Utwórz Zlecenie"}
             </Button>
           </form>
         </CardContent>

@@ -1,10 +1,23 @@
-export type EmployeeRole = 'OFFICE' | 'TECHNICIAN' | 'WAREHOUSE' | 'MANAGER';
-export type SkillLevel = 'JUNIOR' | 'MID' | 'SENIOR';
-export type OrderStatus = 'NEW' | 'WAITING_FOR_TECHNICIAN' | 'DIAGNOSING' | 'WAITING_FOR_ACCEPTANCE' | 'WAITING_FOR_PARTS' | 'IN_PROGRESS' | 'READY_FOR_PICKUP' | 'COMPLETED' | 'CANCELLED';
-export type PartOrderStatus = 'ORDERED' | 'IN_DELIVERY' | 'DELIVERED' | 'CANCELLED';
-export type InvoiceStatus = 'ISSUED' | 'PAID' | 'CANCELLED';
-export type PaymentMethod = 'CASH' | 'CARD' | 'BANK_TRANSFER';
-export type PaymentStatus = 'ACCEPTED' | 'REJECTED' | 'PENDING_SYNC';
+export type EmployeeRole = "OFFICE" | "TECHNICIAN" | "WAREHOUSE" | "MANAGER";
+export type SkillLevel = "JUNIOR" | "MID" | "SENIOR";
+export type OrderStatus =
+  | "NEW"
+  | "WAITING_FOR_TECHNICIAN"
+  | "DIAGNOSING"
+  | "WAITING_FOR_ACCEPTANCE"
+  | "WAITING_FOR_PARTS"
+  | "IN_PROGRESS"
+  | "READY_FOR_PICKUP"
+  | "COMPLETED"
+  | "CANCELLED";
+export type PartOrderStatus =
+  | "ORDERED"
+  | "IN_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED";
+export type InvoiceStatus = "ISSUED" | "PAID" | "CANCELLED";
+export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER";
+export type PaymentStatus = "ACCEPTED" | "REJECTED" | "PENDING_SYNC";
 
 export interface Employee {
   id: string;

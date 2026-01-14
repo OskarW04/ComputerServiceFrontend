@@ -1,22 +1,31 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { DataTable } from '@/components/ui/data-table';
-import type { ColumnDef } from '@tanstack/react-table';
-import { api } from '@/data/api';
-import type { ServiceAction } from '@/data/schema';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DataTable } from "@/components/ui/data-table";
+import type { ColumnDef } from "@tanstack/react-table";
+import { api } from "@/data/api";
+import type { ServiceAction } from "@/data/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function ManagerServices() {
   const [services, setServices] = useState<ServiceAction[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [editingService, setEditingService] = useState<ServiceAction | null>(null);
-  
+  const [editingService, setEditingService] = useState<ServiceAction | null>(
+    null,
+  );
+
   const [formData, setFormData] = useState({
-    name: '',
-    price: ''
+    name: "",
+    price: "",
   });
 
   useEffect(() => {
@@ -28,37 +37,37 @@ export default function ManagerServices() {
   }, []);
 
   const handleAdd = async () => {
-      await api.services.create({
-          name: formData.name,
-          price: parseFloat(formData.price)
-      });
-      const data = await api.services.getAll();
-      setServices(data);
-      setAddOpen(false);
-      setFormData({ name: '', price: '' });
-      alert('Usługa dodana.');
+    await api.services.create({
+      name: formData.name,
+      price: parseFloat(formData.price),
+    });
+    const data = await api.services.getAll();
+    setServices(data);
+    setAddOpen(false);
+    setFormData({ name: "", price: "" });
+    alert("Usługa dodana.");
   };
 
   const handleEdit = async () => {
-      if (!editingService) return;
-      await api.services.update(editingService.id, {
-          name: formData.name,
-          price: parseFloat(formData.price)
-      });
-      const data = await api.services.getAll();
-      setServices(data);
-      setEditOpen(false);
-      setEditingService(null);
-      alert('Usługa zaktualizowana.');
+    if (!editingService) return;
+    await api.services.update(editingService.id, {
+      name: formData.name,
+      price: parseFloat(formData.price),
+    });
+    const data = await api.services.getAll();
+    setServices(data);
+    setEditOpen(false);
+    setEditingService(null);
+    alert("Usługa zaktualizowana.");
   };
 
   const openEdit = (service: ServiceAction) => {
-      setEditingService(service);
-      setFormData({
-          name: service.name,
-          price: service.price.toString()
-      });
-      setEditOpen(true);
+    setEditingService(service);
+    setFormData({
+      name: service.name,
+      price: service.price.toString(),
+    });
+    setEditOpen(true);
   };
 
   const columns: ColumnDef<ServiceAction>[] = [
@@ -69,14 +78,20 @@ export default function ManagerServices() {
     {
       accessorKey: "price",
       header: "Cena (PLN)",
-      cell: ({ row }) => `${row.original.price.toFixed(2)} PLN`
+      cell: ({ row }) => `${row.original.price.toFixed(2)} PLN`,
     },
     {
-        id: "actions",
-        cell: ({ row }) => (
-            <Button variant="outline" size="sm" onClick={() => openEdit(row.original)}>Edytuj</Button>
-        )
-    }
+      id: "actions",
+      cell: ({ row }) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => openEdit(row.original)}
+        >
+          Edytuj
+        </Button>
+      ),
+    },
   ];
 
   return (
@@ -94,11 +109,22 @@ export default function ManagerServices() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label>Nazwa</Label>
-                <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <Input
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                />
               </div>
               <div className="space-y-2">
                 <Label>Cena (PLN)</Label>
-                <Input type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                <Input
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
+                />
               </div>
             </div>
             <DialogFooter>
@@ -112,22 +138,33 @@ export default function ManagerServices() {
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Edytuj Usługę</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label>Nazwa</Label>
-                <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Cena (PLN)</Label>
-                <Input type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-              </div>
+          <DialogHeader>
+            <DialogTitle>Edytuj Usługę</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Nazwa</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+              />
             </div>
-            <DialogFooter>
-                <Button onClick={handleEdit}>Zapisz Zmiany</Button>
-            </DialogFooter>
+            <div className="space-y-2">
+              <Label>Cena (PLN)</Label>
+              <Input
+                type="number"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleEdit}>Zapisz Zmiany</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

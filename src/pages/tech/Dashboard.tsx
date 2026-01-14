@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/data/api';
-import type { RepairOrder } from '@/data/schema';
-import { useAuth } from '@/context/AuthContext';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/data/api";
+import type { RepairOrder } from "@/data/schema";
+import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function TechDashboard() {
   const { user } = useAuth();
@@ -14,9 +14,9 @@ export default function TechDashboard() {
 
   useEffect(() => {
     const fetchTasks = async () => {
-      if (user && 'role' in user) {
+      if (user && "role" in user) {
         const data = await api.orders.getByTechnicianId(user.id);
-        setMyTasks(data.filter(o => o.status !== 'COMPLETED'));
+        setMyTasks(data.filter((o) => o.status !== "COMPLETED"));
       }
     };
     fetchTasks();
@@ -25,11 +25,13 @@ export default function TechDashboard() {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Pulpit Technika</h2>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Przypisane Zadania</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Przypisane Zadania
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{myTasks.length}</div>
@@ -49,7 +51,9 @@ export default function TechDashboard() {
             </CardHeader>
             <CardContent>
               <p className="font-medium">{order.deviceDescription}</p>
-              <p className="text-sm text-muted-foreground mt-1">{order.problemDescription}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {order.problemDescription}
+              </p>
               <div className="mt-4">
                 <Button onClick={() => navigate(`/tech/tasks/${order.id}`)}>
                   Otwórz Zlecenie

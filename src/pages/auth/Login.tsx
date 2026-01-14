@@ -1,34 +1,45 @@
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useErrorDialog } from "@/context/GlobalErrorDialogContext";
 
 export default function Login() {
   const { loginEmployee, loginClient } = useAuth();
   const navigate = useNavigate();
+  const { showError } = useErrorDialog();
   const [loading, setLoading] = useState(false);
 
   // Employee Login State
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // Client Login State
-  const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
+  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
 
   const handleEmployeeLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await loginEmployee(email, password);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
-      console.error('Login failed', error);
-      alert('Logowanie nieudane. Sprawdź dane.');
+      console.error("Login failed", error);
+      showError(
+        "Błąd Logowania",
+        "Logowanie nieudane. Sprawdź e-mail i hasło.",
+      );
     } finally {
       setLoading(false);
     }
@@ -39,10 +50,13 @@ export default function Login() {
     setLoading(true);
     try {
       await loginClient(phone, pin);
-      navigate('/client/dashboard');
+      navigate("/client/dashboard");
     } catch (error) {
-      console.error('Login failed', error);
-      alert('Logowanie nieudane. Sprawdź dane.');
+      console.error("Login failed", error);
+      showError(
+        "Błąd Logowania",
+        "Logowanie nieudane. Sprawdź numer telefonu i PIN.",
+      );
     } finally {
       setLoading(false);
     }
@@ -61,15 +75,15 @@ export default function Login() {
               <TabsTrigger value="employee">Pracownik</TabsTrigger>
               <TabsTrigger value="client">Klient</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="employee">
               <form onSubmit={handleEmployeeLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="jan@serwis.pl" 
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="jan@serwis.pl"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -77,29 +91,29 @@ export default function Login() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Hasło</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="********" 
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="********"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Logowanie...' : 'Zaloguj jako Pracownik'}
+                  {loading ? "Logowanie..." : "Zaloguj jako Pracownik"}
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="client">
               <form onSubmit={handleClientLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Numer Telefonu</Label>
-                  <Input 
-                    id="phone" 
-                    type="tel" 
-                    placeholder="123456789" 
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="123456789"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
@@ -107,17 +121,17 @@ export default function Login() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pin">Kod PIN</Label>
-                  <Input 
-                    id="pin" 
-                    type="password" 
-                    placeholder="****" 
+                  <Input
+                    id="pin"
+                    type="password"
+                    placeholder="****"
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     required
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Logowanie...' : 'Zaloguj jako Klient'}
+                  {loading ? "Logowanie..." : "Zaloguj jako Klient"}
                 </Button>
               </form>
             </TabsContent>

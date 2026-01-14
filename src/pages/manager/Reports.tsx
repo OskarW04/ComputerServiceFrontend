@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/data/api';
-import type { RepairOrder } from '@/data/schema';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Reports() {
+  /* 
   const [orders, setOrders] = useState<RepairOrder[]>([]);
 
   useEffect(() => {
@@ -13,14 +11,15 @@ export default function Reports() {
     };
     fetchData();
   }, []);
+  */
 
-  const totalWorkTime = orders.reduce((acc, order) => acc + (order.totalWorkTimeMinutes || 0), 0);
-  const avgWorkTime = orders.length > 0 ? Math.round(totalWorkTime / orders.length) : 0;
+  /* const totalWorkTime = orders.reduce((acc, order) => acc + (order.totalWorkTimeMinutes || 0), 0); */
+  /* const avgWorkTime = orders.length > 0 ? Math.round(totalWorkTime / orders.length) : 0; */
 
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Raporty i Analizy</h2>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>

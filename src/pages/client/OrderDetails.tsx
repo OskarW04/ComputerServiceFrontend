@@ -1,12 +1,18 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { api } from '@/data/api';
-import type { RepairOrder, CostEstimate } from '@/data/schema';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { api } from "@/data/api";
+import type { RepairOrder, CostEstimate } from "@/data/schema";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle, XCircle } from "lucide-react";
 
 export default function ClientOrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -19,7 +25,7 @@ export default function ClientOrderDetails() {
       if (id) {
         const data = await api.orders.getById(id);
         setOrder(data || null);
-        
+
         // Mock fetching estimate
         const estimates = await api.estimates.getByOrderId(id);
         if (estimates.length > 0) {
@@ -36,7 +42,7 @@ export default function ClientOrderDetails() {
       // Refresh
       const estimates = await api.estimates.getByOrderId(id!);
       setEstimate(estimates[0]);
-      alert('Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.');
+      alert("Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.");
     }
   };
 
@@ -46,7 +52,7 @@ export default function ClientOrderDetails() {
       // Refresh
       const estimates = await api.estimates.getByOrderId(id!);
       setEstimate(estimates[0]);
-      alert('Kosztorys odrzucony. Skontaktujemy się z Tobą.');
+      alert("Kosztorys odrzucony. Skontaktujemy się z Tobą.");
     }
   };
 
@@ -54,12 +60,18 @@ export default function ClientOrderDetails() {
 
   return (
     <div className="space-y-6">
-      <Button variant="outline" onClick={() => navigate(-1)}>← Wróć</Button>
-      
+      <Button variant="outline" onClick={() => navigate(-1)}>
+        ← Wróć
+      </Button>
+
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Zlecenie #{order.orderNumber}</h2>
-          <p className="text-muted-foreground">Utworzono: {new Date(order.createdAt).toLocaleDateString()}</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Zlecenie #{order.orderNumber}
+          </h2>
+          <p className="text-muted-foreground">
+            Utworzono: {new Date(order.createdAt).toLocaleDateString()}
+          </p>
         </div>
         <Badge className="text-lg py-1">{order.status}</Badge>
       </div>
@@ -85,7 +97,9 @@ export default function ClientOrderDetails() {
           <Card>
             <CardHeader>
               <CardTitle>Kosztorys Naprawy</CardTitle>
-              <CardDescription>Wymaga Twojej akceptacji przed rozpoczęciem prac</CardDescription>
+              <CardDescription>
+                Wymaga Twojej akceptacji przed rozpoczęciem prac
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between">
@@ -104,10 +118,17 @@ export default function ClientOrderDetails() {
 
               {estimate.approved === null && (
                 <div className="flex gap-4 mt-4">
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleAcceptEstimate}>
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    onClick={handleAcceptEstimate}
+                  >
                     <CheckCircle className="mr-2 h-4 w-4" /> Akceptuj
                   </Button>
-                  <Button variant="destructive" className="flex-1" onClick={handleRejectEstimate}>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={handleRejectEstimate}
+                  >
                     <XCircle className="mr-2 h-4 w-4" /> Odrzuć
                   </Button>
                 </div>
@@ -115,7 +136,8 @@ export default function ClientOrderDetails() {
 
               {estimate.approved === true && (
                 <div className="flex items-center text-green-600 mt-4 font-medium">
-                  <CheckCircle className="mr-2 h-4 w-4" /> Kosztorys zaakceptowany
+                  <CheckCircle className="mr-2 h-4 w-4" /> Kosztorys
+                  zaakceptowany
                 </div>
               )}
 

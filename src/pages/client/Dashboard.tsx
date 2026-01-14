@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { api } from '@/data/api';
-import type { RepairOrder } from '@/data/schema';
-import { useAuth } from '@/context/AuthContext';
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/data/api";
+import type { RepairOrder } from "@/data/schema";
+import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -13,9 +13,13 @@ export default function ClientDashboard() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (user && !('role' in user)) {
+      if (user && !("role" in user)) {
         const data = await api.orders.getByClientId(user.id);
-        setActiveOrders(data.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED'));
+        setActiveOrders(
+          data.filter(
+            (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED",
+          ),
+        );
       }
     };
     fetchOrders();
@@ -23,12 +27,16 @@ export default function ClientDashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Witaj, {user && 'firstName' in user ? user.firstName : 'Kliencie'}</h2>
-      
+      <h2 className="text-3xl font-bold tracking-tight">
+        Witaj, {user && "firstName" in user ? user.firstName : "Kliencie"}
+      </h2>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aktywne Zlecenia</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Aktywne Zlecenia
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeOrders.length}</div>
@@ -39,7 +47,11 @@ export default function ClientDashboard() {
       <h3 className="text-xl font-semibold mt-6">Twoje Aktywne Zlecenia</h3>
       <div className="grid gap-4">
         {activeOrders.map((order) => (
-          <Card key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/client/orders/${order.id}`)}>
+          <Card
+            key={order.id}
+            className="cursor-pointer hover:bg-muted/50"
+            onClick={() => navigate(`/client/orders/${order.id}`)}
+          >
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Zlecenie #{order.orderNumber}</CardTitle>
@@ -47,8 +59,13 @@ export default function ClientDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">{order.deviceDescription}</p>
-              <p className="text-sm mt-2">Data utworzenia: {new Date(order.createdAt).toLocaleDateString()}</p>
+              <p className="text-sm text-muted-foreground">
+                {order.deviceDescription}
+              </p>
+              <p className="text-sm mt-2">
+                Data utworzenia:{" "}
+                {new Date(order.createdAt).toLocaleDateString()}
+              </p>
             </CardContent>
           </Card>
         ))}

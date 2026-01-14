@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Client, Employee } from '@/data/schema';
-import { api } from '@/data/api';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect } from "react";
+import type { Client, Employee } from "@/data/schema";
+import { api } from "@/data/api";
 
 type User = Employee | Client;
 
@@ -18,46 +19,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('user');
+    const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem("user", JSON.stringify(user));
     } else {
-      localStorage.removeItem('user');
+      localStorage.removeItem("user");
     }
   }, [user]);
 
   const loginEmployee = async (email: string, password?: string) => {
+    // Expecting complete Employee object from API layer (which fetches profile after conversion)
     const employee = await api.auth.loginEmployee(email, password);
-    setUser(employee);
-    localStorage.setItem('user', JSON.stringify(employee));
+    setUser(employee as Employee); // Type assertion or proper typing in api layer
+    // localStorage set in useEffect
   };
 
   const loginClient = async (phone: string, pin: string) => {
     const client = await api.auth.loginClient(phone, pin);
-    setUser(client);
+    setUser(client as Client);
   };
 
   const logout = () => {
     setUser(null);
   };
 
-  const isEmployee = user ? 'role' in user : false;
-  const isClient = user ? !('role' in user) : false;
+  const isEmployee = user ? "role" in user : false;
+  const isClient = user ? !("role" in user) : false;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loginEmployee, 
-      loginClient, 
-      logout, 
-      isAuthenticated: !!user,
-      isEmployee,
-      isClient
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loginEmployee,
+        loginClient,
+        logout,
+        isAuthenticated: !!user,
+        isEmployee,
+        isClient,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -66,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

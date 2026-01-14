@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-refresh/only-export-components */
 
 import type * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
@@ -105,7 +106,6 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
       data-slot="form-control"
       id={formItemId}
       aria-describedby={
-        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
         error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId
       }
       aria-invalid={Boolean(error)}
@@ -129,7 +129,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+
   const body = error ? (error.message ?? "") : props.children;
 
   if (body == null || body === "") {
