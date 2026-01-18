@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/data/api";
 import { Activity, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import type { RepairOrder } from "@/data/schema";
 
 export default function OfficeDashboard() {
   const [stats, setStats] = useState({
@@ -16,11 +17,13 @@ export default function OfficeDashboard() {
       const orders = await api.orders.getAll();
       setStats({
         total: orders.length,
-        new: orders.filter((o) => o.status === "NEW").length,
+        new: orders.filter((o: RepairOrder) => o.status === "NEW").length,
         inProgress: orders.filter(
-          (o) => o.status === "DIAGNOSING" || o.status === "IN_PROGRESS",
+          (o: RepairOrder) =>
+            o.status === "DIAGNOSING" || o.status === "IN_PROGRESS",
         ).length,
-        completed: orders.filter((o) => o.status === "COMPLETED").length,
+        completed: orders.filter((o: RepairOrder) => o.status === "COMPLETED")
+          .length,
       });
     };
     fetchStats();

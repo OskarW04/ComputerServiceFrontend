@@ -17,7 +17,8 @@ export default function ClientDashboard() {
         const data = await api.orders.getByClientId(user.id);
         setActiveOrders(
           data.filter(
-            (o) => o.status !== "COMPLETED" && o.status !== "CANCELLED",
+            (o: RepairOrder) =>
+              o.status !== "COMPLETED" && o.status !== "CANCELLED",
           ),
         );
       }

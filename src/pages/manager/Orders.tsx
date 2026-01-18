@@ -33,7 +33,7 @@ export default function ManagerOrders() {
       const o = await api.orders.getAll();
       setOrders(o);
       const e = await api.employees.getAll();
-      setTechnicians(e.filter((emp) => emp.role === "TECHNICIAN"));
+      setTechnicians(e.filter((emp: Employee) => emp.role === "TECHNICIAN"));
     };
     fetchData();
   }, []);

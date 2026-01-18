@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/data/api";
-import type { RepairOrder } from "@/data/schema";
+import type { RepairOrder, Client } from "@/data/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -22,8 +22,8 @@ export default function OfficeOrderList() {
         api.clients.getAll(),
       ]);
 
-      const enrichedOrders = ordersData.map((order) => {
-        const client = clientsData.find((c) => c.id === order.clientId);
+      const enrichedOrders = ordersData.map((order: RepairOrder) => {
+        const client = clientsData.find((c: Client) => c.id === order.clientId);
         return {
           ...order,
           clientName: client

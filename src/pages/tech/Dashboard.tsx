@@ -16,7 +16,7 @@ export default function TechDashboard() {
     const fetchTasks = async () => {
       if (user && "role" in user) {
         const data = await api.orders.getByTechnicianId(user.id);
-        setMyTasks(data.filter((o) => o.status !== "COMPLETED"));
+        setMyTasks(data.filter((o: RepairOrder) => o.status !== "COMPLETED"));
       }
     };
     fetchTasks();
