@@ -10,14 +10,16 @@ export type OrderStatus =
   | "READY_FOR_PICKUP"
   | "COMPLETED"
   | "CANCELLED";
+
 export type PartOrderStatus =
   | "ORDERED"
   | "IN_DELIVERY"
   | "DELIVERED"
   | "CANCELLED";
-export type InvoiceStatus = "ISSUED" | "PAID" | "CANCELLED";
+
 export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER";
 export type PaymentStatus = "ACCEPTED" | "REJECTED" | "PENDING_SYNC";
+export type DocumentStatus = "ISSUED" | "PAID" | "CANCELLED";
 
 export interface Employee {
   id: string;
@@ -26,7 +28,7 @@ export interface Employee {
   email: string;
   role: EmployeeRole;
   skillLevel?: SkillLevel;
-  password?: string;
+  password?: string; // For creating/mocking
 }
 
 export interface Client {
@@ -35,16 +37,16 @@ export interface Client {
   lastName: string;
   phone: string;
   email: string;
-  pin: string;
+  pin?: string;
 }
 
 export interface SparePart {
   id: string;
   name: string;
-  category: string;
-  quantity: number;
-  minQuantity: number;
+  type: string; // was category
+  stockQuantity: number; // was quantity
   price: number;
+  minQuantity?: number;
 }
 
 export interface ServiceAction {
@@ -53,74 +55,72 @@ export interface ServiceAction {
   price: number;
 }
 
-export interface PartUsage {
+export interface PartResponse {
   id: string;
-  orderId: string;
-  sparePartId: string;
+  name: string;
+  type: string;
   quantity: number;
-  unitPrice: number;
+  price: number;
 }
 
-export interface ActionUsage {
+export interface ActionResponse {
   id: string;
-  orderId: string;
-  actionId: string;
-  discount: number;
+  name: string;
+  price: number;
 }
 
-export interface WorkLog {
+export interface CostEstimate {
   id: string;
-  orderId: string;
-  technicianId: string;
-  startTime: string; // ISO date
-  endTime?: string; // ISO date, undefined if currently running
-  durationMinutes?: number;
+  approved: boolean | null;
+  createdAt: string;
+  partsCost: number;
+  labourCost: number;
+  totalCost: number;
+  parts: PartResponse[];
+  actions: ActionResponse[];
 }
 
 export interface RepairOrder {
   id: string;
   orderNumber: string;
-  createdAt: string; // ISO date
+  createdAt: string;
   startDate?: string;
   endDate?: string;
   deviceDescription: string;
   problemDescription: string;
   status: OrderStatus;
   clientId: string;
-  assignedTechnicianId?: string;
+  clientName: string;
+  clientPhone: string;
+  technicianName?: string;
   managerNotes?: string;
-  totalWorkTimeMinutes?: number; // Aggregated work time
-  diagnosisDescription?: string; // Technical diagnosis details
+  costEstimateResponse?: CostEstimate;
+  // Frontend helpers or missing fields mapped:
+  assignedTechnicianId?: string; // Derived or missing in main response
+  totalWorkTimeMinutes?: number;
 }
 
-export interface CostEstimate {
-  id: string;
-  orderId: string;
-  partsCost: number;
-  labourCost: number;
-  totalCost: number;
-  parts: { partId: string; quantity: number; name: string; price: number }[];
-  approved: boolean | null; // null = pending
-  createdAt: string;
-}
-
+// Previously Invoice, now BaseDocument
 export interface Invoice {
-  id: string;
-  invoiceNumber: string;
+  documentNumber: string; // was invoiceNumber
   issueDate: string;
   totalAmount: number;
-  status: InvoiceStatus;
-  orderId: string;
-  clientId: string;
-  paymentMethod: PaymentMethod;
+  status: DocumentStatus;
+  orderId?: string; // Not in BaseDocument but needed for UI association
+  // paymentMethod might be separate
 }
 
 export interface PartOrder {
   id: string;
-  sparePartId: string;
   orderDate: string;
   estimatedDelivery: string;
-  status: PartOrderStatus;
   quantity: number;
-  repairOrderId?: string;
+  status: PartOrderStatus;
+  sparePart: SparePart;
+}
+
+export interface AuthResponse {
+  token: string;
+  role: string;
+  username: string;
 }

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/data/api";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function ClientRegister() {
   const navigate = useNavigate();
@@ -32,11 +33,11 @@ export default function ClientRegister() {
     setLoading(true);
     try {
       await api.clients.create(formData);
-      alert("Klient zarejestrowany pomyślnie!");
+      toast.success("Klient zarejestrowany pomyślnie!");
       navigate("/office/dashboard");
     } catch (error) {
       console.error("Error registering client", error);
-      alert("Błąd rejestracji klienta.");
+      toast.error("Błąd rejestracji klienta.");
     } finally {
       setLoading(false);
     }

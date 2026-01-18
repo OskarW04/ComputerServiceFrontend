@@ -30,7 +30,7 @@ import WarehouseDelivery from "@/pages/warehouse/WarehouseDelivery";
 // Manager Pages
 import ManagerDashboard from "@/pages/manager/Dashboard";
 import ManagerEmployees from "@/pages/manager/Employees";
-import ManagerReports from "@/pages/manager/Reports";
+
 import ManagerOrders from "@/pages/manager/Orders";
 import ManagerServices from "@/pages/manager/Services";
 
@@ -258,16 +258,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/manager/reports"
-        element={
-          <ProtectedRoute allowedRoles={["MANAGER"]}>
-            <DashboardLayout>
-              <ManagerReports />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
+
       <Route
         path="/manager/orders"
         element={

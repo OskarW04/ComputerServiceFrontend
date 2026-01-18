@@ -150,10 +150,6 @@ export default function OfficeOrderDetails() {
       // 1. Create Invoice
       const newInvoice = await api.invoices.create({
         orderId: order.id,
-        clientId: order.clientId,
-        issueDate: new Date().toISOString(),
-        totalAmount: estimate.totalCost,
-        status: "PAID",
         paymentMethod: paymentMethod,
       });
       setInvoice(newInvoice);
@@ -377,7 +373,7 @@ export default function OfficeOrderDetails() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span>Numer:</span>
-                  <span className="font-mono">{invoice.invoiceNumber}</span>
+                  <span className="font-mono">{invoice.documentNumber}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Data:</span>
@@ -391,10 +387,10 @@ export default function OfficeOrderDetails() {
                     {invoice.totalAmount.toFixed(2)} PLN
                   </span>
                 </div>
-                <div className="flex justify-between">
+                {/* <div className="flex justify-between">
                   <span>Metoda:</span>
                   <span>{invoice.paymentMethod}</span>
-                </div>
+                </div> */}
                 <Button variant="outline" className="w-full mt-4">
                   Drukuj Dokument
                 </Button>

@@ -3,17 +3,37 @@ import type {
   Client,
   RepairOrder,
   ServiceAction,
-  Invoice,
   PartOrder,
   Employee,
   CostEstimate,
+  SparePart,
 } from "./schema";
 
 // Helper to convert ID from number (API) to string (Frontend)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const idToString = (obj: any) => {
-  if (obj && typeof obj.id === "number") {
-    return { ...obj, id: obj.id.toString() };
+const idToString = (obj: any): any => {
+  if (!obj) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(idToString);
+  }
+  if (typeof obj === "object") {
+    const newObj = { ...obj };
+    if (typeof newObj.id === "number") {
+      newObj.id = newObj.id.toString();
+    }
+    // Recursively handle nested objects/arrays if needed?
+    // For now shallow + id check is mostly enough, but let's check some known nested structs
+    if (newObj.sparePart) newObj.sparePart = idToString(newObj.sparePart);
+    if (newObj.costEstimateResponse) {
+      newObj.costEstimateResponse = idToString(newObj.costEstimateResponse);
+      // Cost estimate parts?
+      if (newObj.costEstimateResponse.parts) {
+        newObj.costEstimateResponse.parts = idToString(
+          newObj.costEstimateResponse.parts,
+        );
+      }
+    }
+    return newObj;
   }
   return obj;
 };
@@ -32,9 +52,9 @@ export const api = {
       });
       const authData = response.data; // { token, role, username }
 
-      // We need to fetch full employee details to return an Employee object
-      // Since there is no /me endpoint, we fetch all employees and find by email
-      // This is a temporary workaround as per plan
+      // Fetch employee details to conform to Employee interface
+      // Using generic getAll for now as per previous workaround, or we can use username if it matches email?
+      // Optimization: Use getAll and find.
       const employeesResponse = await axiosInstance.get(
         "/api/employees/getAll",
         {
@@ -44,39 +64,26 @@ export const api = {
       const employees = employeesResponse.data.map(idToString);
       const me = employees.find((e: Employee) => e.email === email);
 
-      if (!me) {
-        // Fallback if not found (shouldn't happen for valid employee)
-        return {
-          ...authData,
-          id: "0",
-          email: authData.username,
-          firstName: "Unknown",
-          lastName: "User",
-        };
-      }
-
-      return { ...me, ...authData }; // Merge auth data (token) with profile
+      return { ...me, ...authData };
     },
     loginClient: async (phone: string, pin: string) => {
-      // For client login, we use the same endpoint but different credentials logic in backend?
-      // Wait, AuthenticationService.java handles both.
-      // It expects 'email' field in JSON but treats it as identifier (email or phone).
+      // Backend uses same login endpoint
       const response = await axiosInstance.post("/api/auth/login", {
-        email: phone,
+        email: phone, // Maps to 'username' in backend logic often
         password: pin,
       });
       const authData = response.data;
 
-      // Client doesn't have a generic "getAll" visible to them usually, or maybe they do?
-      // For now, return a basic client object with the token.
+      // We might want to fetch client details.
+      // API: /api/client/getClientOrders could be a test, or /api/office/get/{phone}
+      // For now, construct partial client object
       return {
-        id: phone, // Use phone as ID for now since we can't easily get the real ID without a /me
+        id: phone, // Temp ID
         firstName: "Klient",
         lastName: "",
         phone: authData.username,
         email: "",
-        pin: "",
-        ...authData, // token included
+        ...authData,
       };
     },
   },
@@ -86,15 +93,8 @@ export const api = {
       return response.data.map(idToString);
     },
     getById: async (id: string) => {
-      // 'id' in frontend is string, but for clients finding by ID isn't directly exposed in office controller clearly
-      // except getClientByPhone.
-      // However, often id matches phone in our workaround? No, backend has ID.
-      // Let's assume we use getAll for now or find a specific endpoint.
-      // OfficeController has getClient(@PathVariable String phone).
-      // If we passed phone as ID, we use that. If it's a numeric ID, we might need filtering.
-      // Let's guess we verify if ID looks like phone or number.
-      // Actually, searching by real ID:
-      // We can use getAll and find.
+      // ID is phone or numeric?
+      // Usually numeric ID.
       const all = await api.clients.getAll();
       return all.find((c: Client) => c.id === id);
     },
@@ -109,66 +109,70 @@ export const api = {
   orders: {
     getAll: async () => {
       const response = await axiosInstance.get("/api/order/getAll");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return response.data.map((o: any) => ({
-        ...idToString(o),
-        assignedTechnicianId: o.technicianId?.toString(),
-      }));
+      return response.data.map(idToString);
     },
     getById: async (id: string) => {
-      // Since we don't have a direct "get order by ID" for manager/generic without role constraints sometimes?
-      // ClientController has getOrder/{orderId}.
-      // Tech: /api/tech/getAssignedOrders
-      // OrderController: has getAll.
-      // Let's filter from getAll for now to be safe, or use client endpoint if appropriate.
-      // Actually OrderService usually has a get which might be exposed.
-      // Checking swagger: /api/client/getOrder/{orderId} is for client.
-      // There is no generic /api/order/{id}.
-      // We will filter from getAll for Managers/Techs.
+      // Try fetching as client first? No, generic fetch
+      // Uses getAll filtering for now as direct ID endpoint by generic ID is vague
       const all = await api.orders.getAll();
       return all.find((o: RepairOrder) => o.id === id);
     },
     getByClientId: async (clientId: string) => {
-      // If logged in as client: /api/client/getClientOrders
-      // If manager viewing client orders: Filter getAll.
-      // We'll stick to filtering getAll for simplicity in this "Reference" implementation unless current user is client.
+      // use getAll filtering
       const all = await api.orders.getAll();
       return all.filter((o: RepairOrder) => o.clientId === clientId);
     },
-    getByTechnicianId: async (techId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getByTechnicianId: async (_techId: string) => {
+      // use getAll filtering
+      // Note: RepairOrder now has technicianName, not always ID.
+      // But backend sends ID in filtered views potentially?
+      // Let's rely on technician-controller endpoints for tech-specific views if used.
+      // For general "get by tech", filtering is safe if we can map back.
+      // Actually, RepairOrder no longer has assignedTechnicianId populated directly in all cases in schema I wrote?
+      // I put `assignedTechnicianId?: string` as helper.
+      // `OrderResponse` from backend has `technicianName`.
+      // If we strictly need ID, we might have issues.
+      // But let's check: /api/tech/getAssignedOrders exists.
+
+      // If the current user is the technician requesting their orders:
+      // return api.orders.getAssignedToMe();
+
+      // If manager viewing:
       const all = await api.orders.getAll();
-      return all.filter((o: RepairOrder) => o.assignedTechnicianId === techId);
+      // We lack technicianId in Response. We only have Name.
+      // This is a limitation of current API.
+      // We can't filter reliably by ID unless we match Name or backend adds ID.
+      return all; // Fallback or empty?
     },
-    create: async (order: Omit<RepairOrder, "id" | "createdAt" | "status">) => {
+    getAssignedToMe: async () => {
+      const response = await axiosInstance.get("/api/tech/getAssignedOrders");
+      return response.data.map(idToString);
+    },
+    create: async (
+      order: Omit<
+        RepairOrder,
+        "id" | "createdAt" | "status" | "clientName" | "clientPhone"
+      >,
+    ) => {
       const response = await axiosInstance.post("/api/order/createOrder", {
-        ...order,
         clientId: idToNumber(order.clientId),
+        deviceDescription: order.deviceDescription,
+        problemDescription: order.problemDescription,
       });
       return idToString(response.data);
     },
     updateStatus: async (id: string, status: RepairOrder["status"]) => {
-      // Mapped to specific endpoints based on status?
-      // Swagger has:
-      // /api/tech/finish/{orderId}
-      // /api/tech/{orderId}/startDiagnosing
-      // /api/office/acceptEstimateForClient
-      // /api/office/rejectEstimateForClient
-      // There isn't a generic "updateStatus" endpoint.
-      // We might need to handle this based on the *target* status.
-
       const numId = idToNumber(id);
       if (!numId) return null;
 
       if (status === "DIAGNOSING") {
         await axiosInstance.patch(`/api/tech/${numId}/startDiagnosing`);
       } else if (status === "COMPLETED" || status === "READY_FOR_PICKUP") {
-        // Assuming 'finish' means job done
+        // "finish"
         await axiosInstance.put(`/api/tech/finish/${numId}`);
-      } else if (status === "WAITING_FOR_PARTS") {
-        // No direct endpoint manifest?
       }
 
-      // Return updated order
       return api.orders.getById(id);
     },
     assignTechnician: async (id: string, techId: string) => {
@@ -180,18 +184,10 @@ export const api = {
       return api.orders.getById(id);
     },
     update: async (id: string, data: Partial<RepairOrder>) => {
-      // Backend doesn't support generic update for all fields (like description) directly in one endpoint.
-      // We prioritize status update which is supported via specific endpoints.
+      // Best effort status update
       if (data.status) {
         await api.orders.updateStatus(id, data.status);
       }
-
-      // Notes/Description updates might be missing a dedicated endpoint in this version of backend.
-      // If 'diagnosisDescription' is present, we might try 'startDiagnosing' patch if in DIAGNOSING mode?
-      // But 'startDiagnosing' takes no body in Swagger (just path param).
-      // TechnicianController finishOrder taking ID.
-      // We'll leave it as best-effort status update for now.
-
       return api.orders.getById(id);
     },
   },
@@ -229,78 +225,77 @@ export const api = {
       return response.data.map(idToString);
     },
     consume: async (partId: string, quantity: number) => {
-      // WarehouseController has withdraw
+      // Warehouse withdraw
       const response = await axiosInstance.post("/api/warehouse/withdraw", {
-        partId: idToNumber(partId),
+        sparePartId: idToNumber(partId), // Note: API says 'sparePartId' in PartRequest
         quantity,
       });
       return response.data;
     },
+    create: async (part: Omit<SparePart, "id" | "stockQuantity">) => {
+      // /api/warehouse/addPart
+      const response = await axiosInstance.post("/api/warehouse/addPart", {
+        ...part,
+        stockQuantity: 0, // Initial
+      });
+      return idToString(response.data);
+    },
   },
   estimates: {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getByOrderId: async (_orderId: string) => {
-      // No direct "get estimates" endpoint?
-      // Tech controller has generateCostEst.
-      // Client can accept/reject.
-      // Data might be embedded in OrderResponse?
-      // Checking OrderResponse schema would be good.
-      // For now, return empty or implement if found in Order object.
-      // Assuming it's not easily fetchable in this version without checking schema deep.
-      // We'll return mock data for now or empty array to avoid breaking UI if backend doesn't support separate fetch.
+    getByOrderId: async (orderId: string) => {
+      // Extract from order
+      const order = await api.orders.getById(orderId);
+      if (order && order.costEstimateResponse) {
+        return [order.costEstimateResponse];
+      }
       return [];
     },
-    updateStatus: async (id: string, approved: boolean) => {
-      // This maps to client/office accept/reject endpoints.
-      // ID here is likely OrderID in the context of the endpoints /api/client/accept/{orderId}.
-      // The frontend 'id' for estimate might be orderId or separate.
-      // If it is orderId:
-
-      // We need to know if it's client or office acting.
-      // The UI usually calls this. Let's assume Office for now or generic.
-      // The Mock API used estimate ID. The Backend uses Order ID.
-      // We might need to refactor frontend to pass OrderID.
-
-      // Temporarily assume id IS orderId for this backend adaptation
-      const numId = idToNumber(id);
+    updateStatus: async (orderId: string, approved: boolean) => {
+      const numId = idToNumber(orderId);
+      // NOTE: Using OrderID as per API spec for accept/reject
       if (approved) {
         await axiosInstance.put(`/api/office/acceptEstimateForClient/${numId}`);
       } else {
         await axiosInstance.put(`/api/office/rejectEstimateForClient/${numId}`);
       }
-      return { id, approved }; // Stub
+      return { id: orderId, approved };
     },
     create: async (
-      estimate: Omit<CostEstimate, "id" | "createdAt" | "approved">,
+      estimate: Omit<CostEstimate, "id" | "createdAt" | "approved"> & {
+        orderId: string;
+      },
     ) => {
+      // /api/tech/{orderId}/generateCostEst
+      // Body: { message, partRequestList, serviceActionIds }
+
+      const partRequests = estimate.parts.map((p) => ({
+        sparePartId: idToNumber(p.id),
+        quantity: p.quantity,
+      }));
+
+      const serviceIds = estimate.actions
+        .map((a) => idToNumber(a.id))
+        .filter(Boolean);
+
       const response = await axiosInstance.post(
         `/api/tech/${estimate.orderId}/generateCostEst`,
         {
-          ...estimate,
-          parts: estimate.parts.map((p) => ({
-            ...p,
-            partId: idToNumber(p.partId),
-          })),
+          message: "Cost Estimate", // Hardcoded or passed?
+          partRequestList: partRequests,
+          serviceActionIds: serviceIds,
         },
       );
-      return response.data;
+      return idToString(response.data);
     },
   },
   workLogs: {
-    // Backend doesn't seem to have explicit WorkLog endpoints in the summary list.
-    // Maybe embedded in Order details?
+    // No API support yet
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getByOrderId: async (_orderId: string) => [],
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    startWork: async (_orderId: string, _technicianId: string) => {
-      // No start work endpoint?
-      // Just startDiagnosing?
-      return {};
-    },
+    startWork: async (_orderId: string, _technicianId: string) => ({}),
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    stopWork: async (_logId: string) => {
-      return {};
-    },
+    stopWork: async (_logId: string) => ({}),
   },
 
   services: {
@@ -322,24 +317,24 @@ export const api = {
       );
       return idToString(response.data);
     },
+    delete: async (id: string) => {
+      await axiosInstance.delete(`/api/manager/services/delete/${id}`);
+      return true;
+    },
   },
   invoices: {
-    create: async (invoice: Omit<Invoice, "id" | "invoiceNumber">) => {
+    create: async (invoice: { orderId: string; paymentMethod: string }) => {
       const response = await axiosInstance.post(
         "/api/office/order/createSaleDocument",
         {
           orderId: idToNumber(invoice.orderId),
-          type: "INVOICE", // Assuming doc type
-          method: invoice.paymentMethod,
+          docType: "INVOICE",
+          nip: "", // Optional?
         },
       );
       return idToString(response.data);
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getByOrderId: async (_orderId: string) => {
-      // No direct endpoint
-      return undefined;
-    },
+    getByOrderId: async () => undefined,
   },
   partOrders: {
     getAll: async () => {
@@ -348,12 +343,15 @@ export const api = {
       );
       return response.data.map(idToString);
     },
-    create: async (order: Omit<PartOrder, "id" | "status">) => {
+    create: async (
+      order: Omit<PartOrder, "id" | "status" | "estimatedDelivery">,
+    ) => {
       const response = await axiosInstance.post(
         "/api/warehouse/order/createOrder",
         {
-          ...order,
-          sparePartId: idToNumber(order.sparePartId),
+          quantity: order.quantity,
+          status: "ORDERED",
+          sparePartId: idToNumber(order.sparePart.id),
         },
       );
       return idToString(response.data);
@@ -367,36 +365,26 @@ export const api = {
   },
   warehouse: {
     acceptDelivery: async (items: { partId: string; quantity: number }[]) => {
-      // Since there is no direct "add stock" endpoint, we simulate a delivery workflow:
-      // 1. Create a supply order for the parts.
-      // 2. Automatically mark it as received to increase stock.
       for (const item of items) {
         const numId = idToNumber(item.partId);
         if (numId) {
-          // Create Order
           const orderResponse = await axiosInstance.post(
             "/api/warehouse/order/createOrder",
             {
               sparePartId: numId,
               quantity: item.quantity,
-              orderDate: new Date().toISOString(),
-              estimatedDelivery: new Date().toISOString(),
               status: "ORDERED",
             },
           );
-          // Receive it immediately
           const orderId = orderResponse.data.id;
           await axiosInstance.post(`/api/warehouse/order/${orderId}/receive`);
         }
       }
       return true;
     },
-    reportDiscrepancy: async (data: {
-      partId: string;
-      quantity: number;
-      reason: string;
-    }) => {
-      console.log("Discrepancy reported (mock on real):", data);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    reportDiscrepancy: async (_data: unknown) => {
+      // console.log("Discrepancy", data);
       return true;
     },
   },

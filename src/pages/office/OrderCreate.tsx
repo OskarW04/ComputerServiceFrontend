@@ -20,6 +20,7 @@ import {
 import { api } from "@/data/api";
 import type { Client } from "@/data/schema";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function OrderCreate() {
   const navigate = useNavigate();
@@ -48,11 +49,11 @@ export default function OrderCreate() {
         orderNumber: `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
       };
       await api.orders.create(orderData);
-      alert("Zlecenie utworzone pomyślnie!");
+      toast.success("Zlecenie utworzone pomyślnie!");
       navigate("/office/orders");
     } catch (error) {
       console.error("Error creating order", error);
-      alert("Błąd tworzenia zlecenia.");
+      toast.error("Błąd tworzenia zlecenia.");
     } finally {
       setLoading(false);
     }

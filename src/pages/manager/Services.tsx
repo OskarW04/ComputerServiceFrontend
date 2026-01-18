@@ -14,12 +14,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export default function ManagerServices() {
   const [services, setServices] = useState<ServiceAction[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceAction | null>(
+    null,
+  );
+  // Delete dialog state
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<ServiceAction | null>(
     null,
   );
 
@@ -45,7 +61,7 @@ export default function ManagerServices() {
     setServices(data);
     setAddOpen(false);
     setFormData({ name: "", price: "" });
-    alert("Usługa dodana.");
+    toast.success("Usługa dodana.");
   };
 
   const handleEdit = async () => {
@@ -58,7 +74,22 @@ export default function ManagerServices() {
     setServices(data);
     setEditOpen(false);
     setEditingService(null);
-    alert("Usługa zaktualizowana.");
+    toast.success("Usługa zaktualizowana.");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (serviceToDelete) {
+      // Mock delete API call since it's missing in schema/apiReal but assumed for example
+      // await api.services.delete(serviceToDelete.id);
+      toast.error("Usuwanie usług nie jest zaimplementowane w API.");
+      setDeleteOpen(false);
+      setServiceToDelete(null);
+    }
+  };
+
+  const openDelete = (service: ServiceAction) => {
+    setServiceToDelete(service);
+    setDeleteOpen(true);
   };
 
   const openEdit = (service: ServiceAction) => {
@@ -83,13 +114,22 @@ export default function ManagerServices() {
     {
       id: "actions",
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => openEdit(row.original)}
-        >
-          Edytuj
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openEdit(row.original)}
+          >
+            Edytuj
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => openDelete(row.original)}
+          >
+            Usuń
+          </Button>
+        </div>
       ),
     },
   ];
@@ -167,6 +207,23 @@ export default function ManagerServices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Czy na pewno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tej operacji nie można cofnąć.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

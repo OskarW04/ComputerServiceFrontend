@@ -7,7 +7,6 @@ import {
   FilePlus,
   List,
   Package,
-  BarChart,
   Briefcase,
   type LucideIcon,
 } from "lucide-react";
@@ -37,7 +36,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         { title: "Pracownicy", url: "/manager/employees", icon: Users },
         { title: "Zlecenia", url: "/manager/orders", icon: List },
         { title: "Usługi", url: "/manager/services", icon: Briefcase },
-        { title: "Raporty", url: "/manager/reports", icon: BarChart },
       ],
     },
     office: {

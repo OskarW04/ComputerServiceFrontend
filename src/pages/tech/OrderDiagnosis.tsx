@@ -102,7 +102,7 @@ export default function OrderDiagnosis() {
 
     await api.orders.update(order.id, {
       status: "CANCELLED",
-      diagnosisDescription: notes,
+      // diagnosisDescription: notes,
     });
     toast.info("Zlecenie oznaczone jako nienaprawialne.");
     navigate("/tech/tasks");
@@ -133,10 +133,19 @@ export default function OrderDiagnosis() {
         parts: selectedParts.map((sp) => {
           const part = parts.find((p) => p.id === sp.partId);
           return {
-            partId: sp.partId,
+            id: sp.partId,
             quantity: sp.quantity,
             name: part?.name || "Unknown",
             price: part?.price || 0,
+            type: part?.type || "Unknown",
+          };
+        }),
+        actions: selectedServices.map((sid) => {
+          const s = services.find((srv) => srv.id === sid);
+          return {
+            id: sid,
+            name: s?.name || "Unknown",
+            price: s?.price || 0,
           };
         }),
       });
@@ -144,7 +153,7 @@ export default function OrderDiagnosis() {
       // Update Order with Diagnosis and Status
       await api.orders.update(order.id, {
         status: "WAITING_FOR_ACCEPTANCE",
-        diagnosisDescription: notes,
+        // diagnosisDescription: notes,
       });
 
       toast.success(
@@ -161,11 +170,12 @@ export default function OrderDiagnosis() {
     if (!order) return;
     try {
       await api.partOrders.create({
-        sparePartId: requestPartId,
+        sparePart: { id: requestPartId } as unknown as SparePart, // Mocking nested sparePart
         quantity: parseInt(requestQuantity),
+        // status: "ORDERED", // Omitted in creation
         orderDate: new Date().toISOString(),
-        estimatedDelivery: new Date(Date.now() + 86400000 * 3).toISOString(), // +3 days
-        repairOrderId: order.id,
+        // estimatedDelivery: new Date(Date.now() + 86400000 * 3).toISOString(), // Omitted in creation
+        // repairOrderId: order.id, // Not in PartOrder schema
       });
       toast.success("Zapotrzebowanie zgłoszone.");
       setRequestPartOpen(false);
@@ -207,7 +217,7 @@ export default function OrderDiagnosis() {
     // Check if all parts are used (optional, but good for UX)
     if (existingEstimate && existingEstimate.parts.length > 0) {
       const allUsed = existingEstimate.parts.every((p) =>
-        usedParts.includes(p.partId),
+        usedParts.includes(p.id),
       );
       if (
         !allUsed &&
@@ -333,7 +343,7 @@ export default function OrderDiagnosis() {
                           if (!order) return;
                           await api.orders.update(order.id, {
                             status: "WAITING_FOR_ACCEPTANCE",
-                            diagnosisDescription: notes,
+                            // diagnosisDescription: notes, // API doesn't support this via update yet
                           });
                           toast.info(
                             "Diagnoza zakończona (kosztorys już istnieje).",
@@ -399,7 +409,8 @@ export default function OrderDiagnosis() {
                                 className="flex items-center justify-between border p-2 rounded"
                               >
                                 <span>
-                                  {p.name} ({p.price} PLN) - Stan: {p.quantity}
+                                  {p.name} ({p.price} PLN) - Stan:{" "}
+                                  {p.stockQuantity}
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <Button
@@ -535,10 +546,10 @@ export default function OrderDiagnosis() {
                     Części do wymiany (z kosztorysu)
                   </h3>
                   {existingEstimate?.parts?.map((part, idx) => {
-                    const stockPart = parts.find((p) => p.id === part.partId);
-                    const isUsed = usedParts.includes(part.partId);
+                    const stockPart = parts.find((p) => p.id === part.id);
+                    const isUsed = usedParts.includes(part.id);
                     const hasStock =
-                      (stockPart?.quantity || 0) >= part.quantity;
+                      (stockPart?.stockQuantity || 0) >= part.quantity;
 
                     return (
                       <div
@@ -549,7 +560,7 @@ export default function OrderDiagnosis() {
                           <p className="font-medium">{part.name}</p>
                           <p className="text-sm text-muted-foreground">
                             Ilość: {part.quantity} | Magazyn:{" "}
-                            {stockPart?.quantity || 0}
+                            {stockPart?.stockQuantity || 0}
                           </p>
                         </div>
                         {isUsed ? (
@@ -561,7 +572,7 @@ export default function OrderDiagnosis() {
                             size="sm"
                             disabled={!hasStock}
                             onClick={() =>
-                              handleConfirmPartUsage(part.partId, part.quantity)
+                              handleConfirmPartUsage(part.id, part.quantity)
                             }
                           >
                             {hasStock ? "Potwierdź Zużycie" : "Brak na stanie"}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -68,8 +69,8 @@ export default function WarehouseInventory() {
     const part: SparePart = {
       id: Math.random().toString(36).substr(2, 9),
       name: newPart.name,
-      category: newPart.category,
-      quantity: parseInt(newPart.quantity),
+      type: newPart.category,
+      stockQuantity: parseInt(newPart.quantity),
       minQuantity: parseInt(newPart.minQuantity),
       price: parseFloat(newPart.price),
     };
@@ -89,7 +90,7 @@ export default function WarehouseInventory() {
     // Mock ordering parts
     const order: PartOrder = {
       id: Math.random().toString(36).substr(2, 9),
-      sparePartId: newOrder.sparePartId,
+      sparePart: { id: newOrder.sparePartId } as unknown as SparePart,
       orderDate: new Date().toISOString(),
       estimatedDelivery: newOrder.estimatedDelivery,
       status: "ORDERED",
@@ -98,24 +99,24 @@ export default function WarehouseInventory() {
     setOrders([...orders, order]);
     setOrderPartsOpen(false);
     setNewOrder({ sparePartId: "", quantity: "", estimatedDelivery: "" });
-    alert("Zamówienie złożone pomyślnie!");
+    toast.success("Zamówienie złożone pomyślnie!");
   };
 
   const handleReleasePart = async () => {
     const part = parts.find((p) => p.id === releaseData.partId);
     if (!part) return;
     const qty = parseInt(releaseData.quantity);
-    if (part.quantity < qty) {
-      alert("Brak wystarczającej ilości na stanie!");
+    if (part.stockQuantity < qty) {
+      toast.error("Brak wystarczającej ilości na stanie!");
       return;
     }
     // Update part quantity (mock)
     // In real app we'd call api.parts.update or api.parts.release
     // We'll mock update locally and assume API call
-    const updatedPart = { ...part, quantity: part.quantity - qty };
+    const updatedPart = { ...part, stockQuantity: part.stockQuantity - qty };
     setParts(parts.map((p) => (p.id === part.id ? updatedPart : p)));
     setReleasePartOpen(false);
-    alert(`Wydano ${qty} szt. ${part.name}`);
+    toast.success(`Wydano ${qty} szt. ${part.name}`);
   };
 
   const handleReceiveDelivery = async (orderId: string) => {
@@ -125,7 +126,7 @@ export default function WarehouseInventory() {
     setOrders(updatedOrders);
     const updatedParts = await api.parts.getAll();
     setParts(updatedParts);
-    alert("Dostawa przyjęta. Stan magazynowy zaktualizowany.");
+    toast.success("Dostawa przyjęta. Stan magazynowy zaktualizowany.");
   };
 
   const partColumns: ColumnDef<SparePart>[] = [
@@ -134,11 +135,11 @@ export default function WarehouseInventory() {
       header: "Nazwa Części",
     },
     {
-      accessorKey: "category",
+      accessorKey: "type",
       header: "Kategoria",
     },
     {
-      accessorKey: "quantity",
+      accessorKey: "stockQuantity",
       header: "Ilość",
     },
     {
@@ -151,7 +152,7 @@ export default function WarehouseInventory() {
       header: "Status",
       cell: ({ row }) => {
         const part = row.original;
-        const isLowStock = part.quantity < part.minQuantity;
+        const isLowStock = part.stockQuantity < (part.minQuantity || 5); // Default if minQuantity missing
         return (
           <Badge variant={isLowStock ? "destructive" : "outline"}>
             {isLowStock ? "Niski Stan" : "Dostępny"}

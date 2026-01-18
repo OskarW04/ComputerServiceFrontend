@@ -214,7 +214,7 @@ export default function WarehouseDelivery() {
                 <SelectContent>
                   {parts.map((part) => (
                     <SelectItem key={part.id} value={part.id}>
-                      {part.name} (Obecnie: {part.quantity})
+                      {part.name} (Obecnie: {part.stockQuantity})
                     </SelectItem>
                   ))}
                 </SelectContent>

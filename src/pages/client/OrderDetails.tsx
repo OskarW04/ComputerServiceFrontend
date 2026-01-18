@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ClientOrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -42,7 +43,7 @@ export default function ClientOrderDetails() {
       // Refresh
       const estimates = await api.estimates.getByOrderId(id!);
       setEstimate(estimates[0]);
-      alert("Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.");
+      toast.success("Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.");
     }
   };
 
@@ -52,7 +53,7 @@ export default function ClientOrderDetails() {
       // Refresh
       const estimates = await api.estimates.getByOrderId(id!);
       setEstimate(estimates[0]);
-      alert("Kosztorys odrzucony. Skontaktujemy się z Tobą.");
+      toast.success("Kosztorys odrzucony. Skontaktujemy się z Tobą.");
     }
   };
 
