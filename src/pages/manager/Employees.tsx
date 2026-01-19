@@ -39,6 +39,7 @@ export default function ManagerEmployees() {
     firstName: "",
     lastName: "",
     email: "",
+    password: "", // Added password field
     role: "TECHNICIAN" as EmployeeRole,
     skillLevel: "MID" as SkillLevel,
   });
@@ -61,10 +62,15 @@ export default function ManagerEmployees() {
 
   const handleAddEmployee = async () => {
     try {
+      if (!formData.password) {
+        toast.error("Hasło jest wymagane dla nowego pracownika.");
+        return;
+      }
       await api.employees.create({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        password: formData.password,
         role: formData.role,
         skillLevel: formData.skillLevel || undefined,
       });
@@ -74,6 +80,7 @@ export default function ManagerEmployees() {
         firstName: "",
         lastName: "",
         email: "",
+        password: "",
         role: "TECHNICIAN",
         skillLevel: "MID",
       });
@@ -91,6 +98,8 @@ export default function ManagerEmployees() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
+        // Only send password if provided (non-empty)
+        password: formData.password ? formData.password : undefined,
         role: formData.role,
         skillLevel:
           formData.role === "TECHNICIAN" ? formData.skillLevel : undefined,
@@ -124,6 +133,7 @@ export default function ManagerEmployees() {
       firstName: employee.firstName,
       lastName: employee.lastName,
       email: employee.email,
+      password: "", // Reset password field for edit
       role: employee.role,
       skillLevel: employee.skillLevel || "MID",
     });
@@ -224,6 +234,18 @@ export default function ManagerEmployees() {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="password">Hasło</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder="Hasło..."
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="role">Rola</Label>
                 <select
                   id="role"
@@ -321,6 +343,17 @@ export default function ManagerEmployees() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Hasło (pozostaw puste aby nie zmieniać)</Label>
+              <Input
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                placeholder="Nowe hasło..."
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

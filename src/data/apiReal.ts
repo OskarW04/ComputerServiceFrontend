@@ -200,14 +200,17 @@ export const api = {
       const response = await axiosInstance.get(`/api/employees/get/${id}`);
       return idToString(response.data);
     },
-    create: async (employee: Omit<Employee, "id">) => {
+    create: async (employee: Omit<Employee, "id"> & { password?: string }) => {
       const response = await axiosInstance.post(
         "/api/employees/create",
         employee,
       );
       return idToString(response.data);
     },
-    update: async (id: string, data: Partial<Employee>) => {
+    update: async (
+      id: string,
+      data: Partial<Employee> & { password?: string },
+    ) => {
       const response = await axiosInstance.put(
         `/api/employees/update/${id}`,
         data,
