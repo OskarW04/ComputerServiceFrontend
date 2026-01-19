@@ -334,7 +334,8 @@ export const api = {
       );
       return idToString(response.data);
     },
-    getByOrderId: async () => undefined,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getByOrderId: async (_orderId: string) => undefined,
   },
   partOrders: {
     getAll: async () => {
