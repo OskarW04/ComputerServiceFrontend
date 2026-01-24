@@ -32,10 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const loginEmployee = async (email: string, password?: string) => {
-    // Expecting complete Employee object from API layer (which fetches profile after conversion)
     const employee = await api.auth.loginEmployee(email, password);
-    setUser(employee as Employee); // Type assertion or proper typing in api layer
-    // localStorage set in useEffect
+    setUser(employee as Employee);
   };
 
   const loginClient = async (phone: string, pin: string) => {
@@ -47,8 +45,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const isEmployee = user ? "role" in user : false;
-  const isClient = user ? !("role" in user) : false;
+  // Helper to safely check role even if type narrowing is tricky with union
+  const userRole = user && "role" in user ? (user.role as string) : null;
+
+  const isEmployee =
+    !!user &&
+    userRole !== null &&
+    ["OFFICE", "TECHNICIAN", "WAREHOUSE", "MANAGER"].includes(userRole);
+  const isClient = !!user && (!userRole || userRole === "CLIENT");
 
   return (
     <AuthContext.Provider

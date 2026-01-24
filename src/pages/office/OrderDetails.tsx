@@ -355,10 +355,6 @@ export default function OfficeOrderDetails() {
                     {invoice.totalAmount.toFixed(2)} PLN
                   </span>
                 </div>
-                {/* <div className="flex justify-between">
-                  <span>Metoda:</span>
-                  <span>{invoice.paymentMethod}</span>
-                </div> */}
                 <Button
                   variant="outline"
                   className="w-full mt-4"

@@ -19,15 +19,16 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/data/api";
 import type { Client } from "@/data/schema";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function OrderCreate() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    clientId: "",
+    clientId: searchParams.get("clientId") || "",
     deviceDescription: "",
     problemDescription: "",
   });

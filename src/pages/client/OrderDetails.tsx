@@ -24,13 +24,16 @@ export default function ClientOrderDetails() {
   useEffect(() => {
     const fetchOrder = async () => {
       if (id) {
-        const data = await api.orders.getById(id);
-        setOrder(data || null);
-
-        // Mock fetching estimate
-        const estimates = await api.estimates.getByOrderId(id);
-        if (estimates.length > 0) {
-          setEstimate(estimates[0]);
+        try {
+          // Use client specific endpoint which includes estimate details
+          const data = await api.client.getOrder(id);
+          setOrder(data || null);
+          if (data?.costEstimateResponse) {
+            setEstimate(data.costEstimateResponse);
+          }
+        } catch (error) {
+          console.error("Failed to fetch order", error);
+          toast.error("Nie udało się pobrać szczegółów zlecenia");
         }
       }
     };
@@ -39,21 +42,39 @@ export default function ClientOrderDetails() {
 
   const handleAcceptEstimate = async () => {
     if (estimate && id) {
-      await api.estimates.updateStatus(id, true);
-      // Refresh
-      const estimates = await api.estimates.getByOrderId(id);
-      setEstimate(estimates[0]);
-      toast.success("Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.");
+      try {
+        await api.client.acceptEstimate(id);
+        // Refresh
+        const data = await api.client.getOrder(id);
+        setOrder(data || null);
+        if (data?.costEstimateResponse) {
+          setEstimate(data.costEstimateResponse);
+        }
+        toast.success(
+          "Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.",
+        );
+      } catch (error) {
+        console.error("Failed to accept estimate", error);
+        toast.error("Wystąpił błąd podczas akceptacji kosztorysu");
+      }
     }
   };
 
   const handleRejectEstimate = async () => {
     if (estimate && id) {
-      await api.estimates.updateStatus(id, false);
-      // Refresh
-      const estimates = await api.estimates.getByOrderId(id);
-      setEstimate(estimates[0]);
-      toast.success("Kosztorys odrzucony. Skontaktujemy się z Tobą.");
+      try {
+        await api.client.rejectEstimate(id);
+        // Refresh
+        const data = await api.client.getOrder(id);
+        setOrder(data || null);
+        if (data?.costEstimateResponse) {
+          setEstimate(data.costEstimateResponse);
+        }
+        toast.success("Kosztorys odrzucony. Skontaktujemy się z Tobą.");
+      } catch (error) {
+        console.error("Failed to reject estimate", error);
+        toast.error("Wystąpił błąd podczas odrzucania kosztorysu");
+      }
     }
   };
 

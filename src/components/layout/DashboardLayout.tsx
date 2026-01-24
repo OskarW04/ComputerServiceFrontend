@@ -13,10 +13,20 @@ export default function DashboardLayout({
   const { logout, user } = useAuth();
 
   // Derive userName from the user object
-  const userName =
-    user && "firstName" in user
-      ? `${user.firstName} ${user.lastName}`
-      : "Klient";
+  const getUserName = () => {
+    if (!user) return "Użytkownik";
+    if ("firstName" in user && "lastName" in user) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if ("username" in user) {
+      return (user as { username: string }).username;
+    }
+    if ("phone" in user) {
+      return `Klient ${user.phone}`;
+    }
+    return "Użytkownik";
+  };
+  const userName = getUserName();
 
   return (
     <SidebarProvider>

@@ -28,7 +28,7 @@ export interface Employee {
   email: string;
   role: EmployeeRole;
   skillLevel?: SkillLevel;
-  password?: string; // For creating/mocking
+  password?: string;
 }
 
 export interface Client {
@@ -43,8 +43,8 @@ export interface Client {
 export interface SparePart {
   id: string;
   name: string;
-  type: string; // was category
-  stockQuantity: number; // was quantity
+  type: string;
+  stockQuantity: number;
   price: number;
   minQuantity?: number;
 }
@@ -95,19 +95,16 @@ export interface RepairOrder {
   technicianName?: string;
   managerNotes?: string;
   costEstimateResponse?: CostEstimate;
-  // Frontend helpers or missing fields mapped:
-  assignedTechnicianId?: string; // Derived or missing in main response
+  assignedTechnicianId?: string;
   totalWorkTimeMinutes?: number;
 }
 
-// Previously Invoice, now BaseDocument
 export interface Invoice {
-  documentNumber: string; // was invoiceNumber
+  documentNumber: string;
   issueDate: string;
   totalAmount: number;
   status: DocumentStatus;
-  orderId?: string; // Not in BaseDocument but needed for UI association
-  // paymentMethod might be separate
+  orderId?: string;
 }
 
 export interface PartOrder {

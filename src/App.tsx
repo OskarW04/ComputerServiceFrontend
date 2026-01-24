@@ -60,24 +60,32 @@ function ProtectedRoute({
 }
 
 function RoleBasedRedirect() {
-  const { user, isEmployee } = useAuth();
+  const { user, isEmployee, isClient } = useAuth();
 
-  if (!isEmployee || !user || !("role" in user)) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  switch (user.role) {
-    case "OFFICE":
-      return <Navigate to="/office/dashboard" replace />;
-    case "TECHNICIAN":
-      return <Navigate to="/tech/tasks" replace />;
-    case "WAREHOUSE":
-      return <Navigate to="/warehouse/inventory" replace />;
-    case "MANAGER":
-      return <Navigate to="/manager/dashboard" replace />;
-    default:
-      return <Navigate to="/unauthorized" replace />;
+  if (isClient) {
+    return <Navigate to="/client/dashboard" replace />;
   }
+
+  if (isEmployee && "role" in user) {
+    switch (user.role) {
+      case "OFFICE":
+        return <Navigate to="/office/dashboard" replace />;
+      case "TECHNICIAN":
+        return <Navigate to="/tech/tasks" replace />;
+      case "WAREHOUSE":
+        return <Navigate to="/warehouse/inventory" replace />;
+      case "MANAGER":
+        return <Navigate to="/manager/dashboard" replace />;
+      default:
+        return <Navigate to="/unauthorized" replace />;
+    }
+  }
+
+  return <Navigate to="/unauthorized" replace />;
 }
 
 function AppRoutes() {
@@ -86,10 +94,17 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Redirect root to login for now */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Redirect root based on role */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <RoleBasedRedirect />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Employee Dashboard Redirect */}
+      {/* Employee & Client Role Redirect */}
       <Route
         path="/dashboard"
         element={
