@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { formatStatus } from "@/lib/utils";
 
 export default function TechDashboard() {
   const { user } = useAuth();
@@ -15,7 +16,7 @@ export default function TechDashboard() {
   useEffect(() => {
     const fetchTasks = async () => {
       if (user && "role" in user) {
-        const data = await api.orders.getByTechnicianId(user.id);
+        const data = await api.orders.getAssignedToMe();
         setMyTasks(data.filter((o: RepairOrder) => o.status !== "COMPLETED"));
       }
     };
@@ -46,7 +47,7 @@ export default function TechDashboard() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Zlecenie #{order.orderNumber}</CardTitle>
-                <Badge>{order.status}</Badge>
+                <Badge>{formatStatus(order.status)}</Badge>
               </div>
             </CardHeader>
             <CardContent>

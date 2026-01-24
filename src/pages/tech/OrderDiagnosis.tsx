@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useErrorDialog } from "@/context/GlobalErrorDialogContext";
+import { formatStatus } from "@/lib/utils";
 
 export default function OrderDiagnosis() {
   const { id } = useParams<{ id: string }>();
@@ -186,18 +187,6 @@ export default function OrderDiagnosis() {
     }
   };
 
-  const handleUpdate = async () => {
-    if (order) {
-      try {
-        await api.orders.updateStatus(order.id, status);
-        toast.success("Status zaktualizowany!");
-        navigate("/tech/tasks");
-      } catch {
-        showError("Błąd", "Nie udało się zaktualizować statusu.");
-      }
-    }
-  };
-
   const handleConfirmPartUsage = async (partId: string, quantity: number) => {
     try {
       await api.parts.consume(partId, quantity);
@@ -272,7 +261,7 @@ export default function OrderDiagnosis() {
                 Urządzenie: {order.deviceDescription}
               </p>
             </div>
-            <Badge>{order.status}</Badge>
+            <Badge>{formatStatus(order.status)}</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -283,29 +272,54 @@ export default function OrderDiagnosis() {
             </div>
           </div>
 
-          {status !== "DIAGNOSING" && status !== "WAITING_FOR_TECHNICIAN" && (
-            <div className="space-y-2">
-              <h3 className="font-semibold">Aktualizuj Status</h3>
-              <Select
-                value={status}
-                onValueChange={(val) => setStatus(val as OrderStatus)}
+          {/* Workflow Actions based on Status */}
+          <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+            <h3 className="font-semibold">Akcje Zlecenia</h3>
+
+            {status === "WAITING_FOR_TECHNICIAN" ? (
+              <Button
+                onClick={handleStartDiagnosis}
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="WAITING_FOR_PARTS">
-                    Oczekiwanie na części
-                  </SelectItem>
-                  <SelectItem value="IN_PROGRESS">W trakcie naprawy</SelectItem>
-                  <SelectItem value="READY_FOR_PICKUP">
-                    Gotowe do odbioru
-                  </SelectItem>
-                  <SelectItem value="COMPLETED">Zakończone</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                Rozpocznij Diagnozę
+              </Button>
+            ) : status === "DIAGNOSING" ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Trwa diagnoza. Po zakończeniu wprowadź notatki i utwórz
+                  kosztorys.
+                </p>
+                {/* Quote creation is handled in the Quote card below */}
+              </div>
+            ) : status === "WAITING_FOR_ACCEPTANCE" ? (
+              <div className="flex items-center gap-2 text-yellow-600 bg-yellow-50 p-2 rounded">
+                <span className="font-medium">
+                  Oczekiwanie na akceptację klienta
+                </span>
+              </div>
+            ) : status === "WAITING_FOR_PARTS" ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-orange-600 bg-orange-50 p-2 rounded">
+                  <span className="font-medium">Oczekiwanie na części</span>
+                </div>
+                {/* Logic to check if parts have arrived could go here */}
+              </div>
+            ) : status === "IN_PROGRESS" ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Naprawa w toku. Zużyj części i zakończ naprawę.
+                </p>
+              </div>
+            ) : status === "READY_FOR_PICKUP" ? (
+              <div className="flex items-center gap-2 text-green-600 bg-green-50 p-2 rounded">
+                <span className="font-medium">
+                  Gotowe do odbioru / Zakończone przez technika
+                </span>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Status: {status}</p>
+            )}
+          </div>
 
           <div className="space-y-2">
             <h3 className="font-semibold">Notatki Techniczne</h3>
@@ -600,14 +614,6 @@ export default function OrderDiagnosis() {
               </CardContent>
             </Card>
           )}
-
-          {status !== "DIAGNOSING" &&
-            status !== "WAITING_FOR_TECHNICIAN" &&
-            status !== "IN_PROGRESS" && (
-              <Button className="w-full" onClick={handleUpdate}>
-                Zapisz Zmiany
-              </Button>
-            )}
         </CardContent>
       </Card>
     </div>

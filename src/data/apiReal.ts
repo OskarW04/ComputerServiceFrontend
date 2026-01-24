@@ -7,6 +7,7 @@ import type {
   Employee,
   CostEstimate,
   SparePart,
+  PaymentMethod,
 } from "./schema";
 
 // Helper to convert ID from number (API) to string (Frontend)
@@ -46,45 +47,60 @@ const idToNumber = (id: string | undefined) => {
 export const api = {
   auth: {
     loginEmployee: async (email: string, password?: string) => {
-      const response = await axiosInstance.post("/api/auth/login", {
-        email,
-        password,
-      });
-      const authData = response.data; // { token, role, username }
-
-      // Fetch employee details to conform to Employee interface
-      // Using generic getAll for now as per previous workaround, or we can use username if it matches email?
-      // Optimization: Use getAll and find.
-      const employeesResponse = await axiosInstance.get(
-        "/api/employees/getAll",
+      // Explicitly remove Authorization header for login to avoid sending stale tokens
+      const response = await axiosInstance.post(
+        "/api/auth/login",
         {
-          headers: { Authorization: `Bearer ${authData.token}` },
+          email,
+          password,
+        },
+        {
+          headers: { Authorization: "" },
         },
       );
-      const employees = employeesResponse.data.map(idToString);
-      const me = employees.find((e: Employee) => e.email === email);
+      const authData = response.data; // { token, role, username }
+
+      // Fetch employee details using /api/auth/getMe
+      const meResponse = await axiosInstance.get("/api/auth/getMe", {
+        headers: { Authorization: `Bearer ${authData.token}` },
+      });
+      const me = idToString(meResponse.data);
 
       return { ...me, ...authData };
     },
     loginClient: async (phone: string, pin: string) => {
       // Backend uses same login endpoint
-      const response = await axiosInstance.post("/api/auth/login", {
-        email: phone, // Maps to 'username' in backend logic often
-        password: pin,
-      });
+      const response = await axiosInstance.post(
+        "/api/auth/login",
+        {
+          email: phone, // Maps to 'username' in backend logic often
+          password: pin,
+        },
+        {
+          headers: { Authorization: "" },
+        },
+      );
       const authData = response.data;
 
-      // We might want to fetch client details.
-      // API: /api/client/getClientOrders could be a test, or /api/office/get/{phone}
-      // For now, construct partial client object
+      // Fetch client details.
+      const clientResponse = await axiosInstance.get(
+        `/api/office/get/${phone}`,
+        {
+          headers: { Authorization: `Bearer ${authData.token}` },
+        },
+      );
+      const clientDetails = idToString(clientResponse.data);
+
       return {
-        id: phone, // Temp ID
-        firstName: "Klient",
-        lastName: "",
-        phone: authData.username,
-        email: "",
+        ...clientDetails,
         ...authData,
       };
+    },
+    generatePIN: async (phone: string) => {
+      const response = await axiosInstance.post("/api/auth/generatePIN", {
+        phoneNumber: phone,
+      });
+      return response.data;
     },
   },
   clients: {
@@ -338,7 +354,60 @@ export const api = {
       return idToString(response.data);
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getByOrderId: async (_orderId: string) => undefined,
+    getByOrderId: async (_orderId: string) => {
+      // Backend doesn't have a direct "get invoice by order id" endpoint in OfficeController,
+      // but maybe it's missing? Or we use `createSaleDocument` to check?
+      // Actually `financeService.getDocumentPdf` takes orderNumber.
+      // Let's assume for now we don't fetch invoice details often or use a different endpoint if exists.
+      // For now returning null to satisfy interface.
+      return null;
+    },
+    generatePdf: async (orderNumber: string) => {
+      const response = await axiosInstance.get(
+        `/api/office/order/${orderNumber}/generatePdf`,
+        { responseType: "blob" },
+      );
+      // Create a blob URL and open it
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `dokument_zlecenia_${orderNumber.replace("/", "-")}.pdf`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    },
+  },
+  payments: {
+    create: async (payment: {
+      orderId: string;
+      amount: number;
+      method: PaymentMethod;
+    }) => {
+      const response = await axiosInstance.post("/api/office/payment", {
+        orderId: idToNumber(payment.orderId),
+        amount: payment.amount,
+        method: payment.method,
+      });
+      return idToString(response.data);
+    },
+    payClient: async (
+      orderId: string,
+      amount: number,
+      method: PaymentMethod,
+    ) => {
+      const response = await axiosInstance.post(
+        `/api/client/pay/${idToNumber(orderId)}`,
+        {
+          orderId: idToNumber(orderId), // Redundant in body if path has it? Swagger says body has PaymentRequest
+          amount,
+          method,
+        },
+      );
+      return idToString(response.data);
+    },
   },
   partOrders: {
     getAll: async () => {

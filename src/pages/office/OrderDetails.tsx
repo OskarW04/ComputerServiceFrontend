@@ -18,7 +18,6 @@ import type {
   CostEstimate,
   Invoice,
   PaymentMethod,
-  OrderStatus,
 } from "@/data/schema";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,6 +31,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useErrorDialog } from "@/context/GlobalErrorDialogContext";
+import { formatStatus } from "@/lib/utils";
 
 export default function OfficeOrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +48,6 @@ export default function OfficeOrderDetails() {
     deviceDescription: "",
     problemDescription: "",
     managerNotes: "",
-    status: "NEW",
   });
 
   // Payment State
@@ -65,7 +64,6 @@ export default function OfficeOrderDetails() {
             deviceDescription: orderData.deviceDescription,
             problemDescription: orderData.problemDescription,
             managerNotes: orderData.managerNotes || "",
-            status: orderData.status,
           });
         }
 
@@ -82,17 +80,12 @@ export default function OfficeOrderDetails() {
   const handleSaveEdit = async () => {
     if (!order) return;
     try {
-      if (editForm.status !== order.status) {
-        await api.orders.updateStatus(order.id, editForm.status as OrderStatus);
-      }
       await api.orders.update(order.id, {
         ...editForm,
-        status: editForm.status as OrderStatus,
       });
       setOrder({
         ...order,
         ...editForm,
-        status: editForm.status as OrderStatus,
       });
       setIsEditing(false);
       toast.success("Zmiany zapisane.");
@@ -102,10 +95,10 @@ export default function OfficeOrderDetails() {
   };
 
   const handleAcceptEstimate = async () => {
-    if (estimate) {
+    if (order && estimate) {
       try {
-        await api.estimates.updateStatus(estimate.id, true);
-        if (order) await api.orders.updateStatus(order.id, "IN_PROGRESS"); // Or waiting for parts
+        await api.estimates.updateStatus(order.id, true);
+        await api.orders.updateStatus(order.id, "IN_PROGRESS"); // Or waiting for parts
 
         // Refresh
         const estimates = await api.estimates.getByOrderId(id!);
@@ -120,10 +113,10 @@ export default function OfficeOrderDetails() {
   };
 
   const handleRejectEstimate = async () => {
-    if (estimate) {
+    if (estimate && order) {
       try {
-        await api.estimates.updateStatus(estimate.id, false);
-        if (order) await api.orders.updateStatus(order.id, "CANCELLED");
+        await api.estimates.updateStatus(order.id, false);
+        await api.orders.updateStatus(order.id, "CANCELLED");
 
         // Refresh
         const estimates = await api.estimates.getByOrderId(id!);
@@ -147,14 +140,21 @@ export default function OfficeOrderDetails() {
     setLoading(true);
 
     try {
-      // 1. Create Invoice
+      // 1. Register Payment
+      await api.payments.create({
+        orderId: order.id,
+        amount: estimate.totalCost,
+        method: paymentMethod,
+      });
+
+      // 2. Create Invoice
       const newInvoice = await api.invoices.create({
         orderId: order.id,
-        paymentMethod: paymentMethod,
+        paymentMethod: paymentMethod, // retained for consistency/logging even if API ignores it
       });
       setInvoice(newInvoice);
 
-      // 2. Update Order Status
+      // 3. Update Order Status
       await api.orders.updateStatus(order.id, "COMPLETED");
       const updatedOrder = await api.orders.getById(order.id);
       setOrder(updatedOrder || null);
@@ -205,41 +205,9 @@ export default function OfficeOrderDetails() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Status</Label>
-              {isEditing ? (
-                <Select
-                  value={editForm.status}
-                  onValueChange={(v) =>
-                    setEditForm({ ...editForm, status: v as OrderStatus })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NEW">Nowe</SelectItem>
-                    <SelectItem value="WAITING_FOR_TECHNICIAN">
-                      Oczekuje na Technika
-                    </SelectItem>
-                    <SelectItem value="DIAGNOSING">W Diagnozie</SelectItem>
-                    <SelectItem value="WAITING_FOR_ACCEPTANCE">
-                      Oczekuje na Akceptację
-                    </SelectItem>
-                    <SelectItem value="WAITING_FOR_PARTS">
-                      Oczekuje na Części
-                    </SelectItem>
-                    <SelectItem value="IN_PROGRESS">W Realizacji</SelectItem>
-                    <SelectItem value="READY_FOR_PICKUP">
-                      Gotowe do Odbioru
-                    </SelectItem>
-                    <SelectItem value="COMPLETED">Zakończone</SelectItem>
-                    <SelectItem value="CANCELLED">Anulowane</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div>
-                  <Badge>{order.status}</Badge>
-                </div>
-              )}
+              <div>
+                <Badge>{formatStatus(order.status)}</Badge>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -391,7 +359,11 @@ export default function OfficeOrderDetails() {
                   <span>Metoda:</span>
                   <span>{invoice.paymentMethod}</span>
                 </div> */}
-                <Button variant="outline" className="w-full mt-4">
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => api.invoices.generatePdf(order.orderNumber)}
+                >
                   Drukuj Dokument
                 </Button>
               </CardContent>

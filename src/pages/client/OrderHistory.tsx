@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/ui/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
+import { formatStatus } from "@/lib/utils";
 
 export default function ClientOrderHistory() {
   const [orders, setOrders] = useState<RepairOrder[]>([]);
@@ -45,7 +46,7 @@ export default function ClientOrderHistory() {
       header: "Status",
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{formatStatus(status)}</Badge>;
       },
     },
     {

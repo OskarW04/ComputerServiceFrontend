@@ -167,8 +167,10 @@ export function DataTable<TData, TValue>({
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} z{" "}
-          {table.getFilteredRowModel().rows.length} wierszy zaznaczonych.
+          <div className="flex-1 text-sm text-muted-foreground">
+            {/* {table.getFilteredSelectedRowModel().rows.length} z{" "}
+          {table.getFilteredRowModel().rows.length} wierszy zaznaczonych. */}
+          </div>
         </div>
         <div className="space-x-2">
           <Button

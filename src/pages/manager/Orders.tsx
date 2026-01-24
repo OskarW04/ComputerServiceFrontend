@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
 
 export default function ManagerOrders() {
   const [orders, setOrders] = useState<RepairOrder[]>([]);
@@ -97,7 +98,7 @@ export default function ManagerOrders() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <Badge>{row.original.status}</Badge>,
+      cell: ({ row }) => <Badge>{formatStatus(row.original.status)}</Badge>,
     },
     {
       accessorKey: "assignedTechnicianId",

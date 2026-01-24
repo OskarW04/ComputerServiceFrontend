@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/ui/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
+import { formatStatus } from "@/lib/utils";
 
 type OrderWithClient = RepairOrder & { clientName: string };
 
@@ -63,7 +64,7 @@ export default function OfficeOrderList() {
         const status = row.getValue("status") as string;
         return (
           <Badge variant={status === "NEW" ? "destructive" : "outline"}>
-            {status}
+            {formatStatus(status)}
           </Badge>
         );
       },

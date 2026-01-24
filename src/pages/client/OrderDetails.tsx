@@ -38,20 +38,20 @@ export default function ClientOrderDetails() {
   }, [id]);
 
   const handleAcceptEstimate = async () => {
-    if (estimate) {
-      await api.estimates.updateStatus(estimate.id, true);
+    if (estimate && id) {
+      await api.estimates.updateStatus(id, true);
       // Refresh
-      const estimates = await api.estimates.getByOrderId(id!);
+      const estimates = await api.estimates.getByOrderId(id);
       setEstimate(estimates[0]);
       toast.success("Kosztorys zaakceptowany. Naprawa rozpocznie się wkrótce.");
     }
   };
 
   const handleRejectEstimate = async () => {
-    if (estimate) {
-      await api.estimates.updateStatus(estimate.id, false);
+    if (estimate && id) {
+      await api.estimates.updateStatus(id, false);
       // Refresh
-      const estimates = await api.estimates.getByOrderId(id!);
+      const estimates = await api.estimates.getByOrderId(id);
       setEstimate(estimates[0]);
       toast.success("Kosztorys odrzucony. Skontaktujemy się z Tobą.");
     }
