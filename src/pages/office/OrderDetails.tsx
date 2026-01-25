@@ -190,83 +190,102 @@ export default function OfficeOrderDetails() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Order Details */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Szczegóły Zlecenia</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              {isEditing ? "Anuluj" : "Edytuj"}
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div>
-                <Badge>{formatStatus(order.status)}</Badge>
+        <div className="space-y-6">
+          {/* Client Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Klient</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <Label>Imię i Nazwisko</Label>
+                <p className="text-lg font-medium">{order.clientName}</p>
               </div>
-            </div>
+              <div className="space-y-1">
+                <Label>Telefon</Label>
+                <p className="text-lg font-medium">{order.clientPhone}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-            <div className="space-y-2">
-              <Label>Urządzenie</Label>
-              {isEditing ? (
-                <Input
-                  value={editForm.deviceDescription}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      deviceDescription: e.target.value,
-                    })
-                  }
-                />
-              ) : (
-                <p className="text-sm">{order.deviceDescription}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Opis Problemu</Label>
-              {isEditing ? (
-                <Textarea
-                  value={editForm.problemDescription}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      problemDescription: e.target.value,
-                    })
-                  }
-                />
-              ) : (
-                <p className="text-sm">{order.problemDescription}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Uwagi Managera/Biura</Label>
-              {isEditing ? (
-                <Textarea
-                  value={editForm.managerNotes}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, managerNotes: e.target.value })
-                  }
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {order.managerNotes || "-"}
-                </p>
-              )}
-            </div>
-
-            {isEditing && (
-              <Button onClick={handleSaveEdit} className="w-full">
-                Zapisz Zmiany
+          {/* Order Details */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Szczegóły Zlecenia</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                {isEditing ? "Anuluj" : "Edytuj"}
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <div>
+                  <Badge>{formatStatus(order.status)}</Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Urządzenie</Label>
+                {isEditing ? (
+                  <Input
+                    value={editForm.deviceDescription}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        deviceDescription: e.target.value,
+                      })
+                    }
+                  />
+                ) : (
+                  <p className="text-sm">{order.deviceDescription}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Opis Problemu</Label>
+                {isEditing ? (
+                  <Textarea
+                    value={editForm.problemDescription}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        problemDescription: e.target.value,
+                      })
+                    }
+                  />
+                ) : (
+                  <p className="text-sm">{order.problemDescription}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Uwagi Managera/Biura</Label>
+                {isEditing ? (
+                  <Textarea
+                    value={editForm.managerNotes}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, managerNotes: e.target.value })
+                    }
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {order.managerNotes || "-"}
+                  </p>
+                )}
+              </div>
+
+              {isEditing && (
+                <Button onClick={handleSaveEdit} className="w-full">
+                  Zapisz Zmiany
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Financials / Estimate */}
         <div className="space-y-6">

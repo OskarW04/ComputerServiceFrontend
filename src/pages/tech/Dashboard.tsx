@@ -16,7 +16,7 @@ export default function TechDashboard() {
   useEffect(() => {
     const fetchTasks = async () => {
       if (user && "role" in user) {
-        const data = await api.orders.getAssignedToMe();
+        const data = await api.tech.getAssignedOrders();
         setMyTasks(data.filter((o: RepairOrder) => o.status !== "COMPLETED"));
       }
     };

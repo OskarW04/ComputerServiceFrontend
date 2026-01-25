@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { formatStatus } from "@/lib/utils";
 
 export default function ClientOrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -95,7 +96,7 @@ export default function ClientOrderDetails() {
             Utworzono: {new Date(order.createdAt).toLocaleDateString()}
           </p>
         </div>
-        <Badge className="text-lg py-1">{order.status}</Badge>
+        <Badge className="text-lg py-1">{formatStatus(order.status)}</Badge>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

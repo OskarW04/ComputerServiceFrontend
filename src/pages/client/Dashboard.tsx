@@ -5,6 +5,7 @@ import type { RepairOrder } from "@/data/schema";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { formatStatus } from "@/lib/utils";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -13,18 +14,16 @@ export default function ClientDashboard() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (user && !("role" in user)) {
-        const data = await api.orders.getByClientId(user.id);
-        setActiveOrders(
-          data.filter(
-            (o: RepairOrder) =>
-              o.status !== "COMPLETED" && o.status !== "CANCELLED",
-          ),
-        );
-      }
+      const data = await api.client.getOrders();
+      setActiveOrders(
+        data.filter(
+          (o: RepairOrder) =>
+            o.status !== "COMPLETED" && o.status !== "CANCELLED",
+        ),
+      );
     };
     fetchOrders();
-  }, [user]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -56,7 +55,7 @@ export default function ClientDashboard() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Zlecenie #{order.orderNumber}</CardTitle>
-                <Badge>{order.status}</Badge>
+                <Badge>{formatStatus(order.status)}</Badge>
               </div>
             </CardHeader>
             <CardContent>

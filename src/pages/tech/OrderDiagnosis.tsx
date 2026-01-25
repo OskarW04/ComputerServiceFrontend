@@ -31,6 +31,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useErrorDialog } from "@/context/GlobalErrorDialogContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatStatus } from "@/lib/utils";
 
 export default function OrderDiagnosis() {
@@ -61,14 +71,21 @@ export default function OrderDiagnosis() {
   // Repair Execution State
   const [usedParts, setUsedParts] = useState<string[]>([]); // IDs of parts marked as used
 
+  // AlertDialog State
+  const [unrepairableOpen, setUnrepairableOpen] = useState(false);
+  const [finishRepairOpen, setFinishRepairOpen] = useState(false);
+
   useEffect(() => {
     const fetchOrder = async () => {
       if (id) {
-        const data = await api.orders.getById(id);
+        const data = await api.tech.getOrder(id);
         if (data) {
           setOrder(data);
           setStatus(data.status);
           setNotes(data.diagnosisDescription || "");
+          if (data.costEstimateResponse) {
+            setExistingEstimate(data.costEstimateResponse);
+          }
         }
       }
     };
@@ -79,31 +96,25 @@ export default function OrderDiagnosis() {
     const fetchResources = async () => {
       const p = await api.parts.getAll();
       setParts(p);
-      const s = await api.services.getAll();
+      const s = await api.tech.getAllServices();
       setServices(s);
-      if (id) {
-        const estimates = await api.estimates.getByOrderId(id);
-        if (estimates.length > 0) setExistingEstimate(estimates[0]);
-      }
     };
     fetchResources();
   }, [id]);
 
   const handleStartDiagnosis = async () => {
     if (!order) return;
-    await api.orders.updateStatus(order.id, "DIAGNOSING");
+    await api.tech.startDiagnosing(order.id);
     setOrder({ ...order, status: "DIAGNOSING" });
     setStatus("DIAGNOSING");
+    toast.success("Rozpoczęto diagnozę.");
   };
 
   const handleUnrepairable = async () => {
     if (!order) return;
-    if (!confirm("Czy na pewno chcesz oznaczyć sprzęt jako nienaprawialny?"))
-      return;
 
     await api.orders.update(order.id, {
       status: "CANCELLED",
-      // diagnosisDescription: notes,
     });
     toast.info("Zlecenie oznaczone jako nienaprawialne.");
     navigate("/tech/tasks");
@@ -126,36 +137,18 @@ export default function OrderDiagnosis() {
 
     // Create Estimate
     try {
-      await api.estimates.create({
-        orderId: order.id,
-        partsCost,
-        labourCost,
-        totalCost: partsCost + labourCost,
-        parts: selectedParts.map((sp) => {
-          const part = parts.find((p) => p.id === sp.partId);
-          return {
-            id: sp.partId,
-            quantity: sp.quantity,
-            name: part?.name || "Unknown",
-            price: part?.price || 0,
-            type: part?.type || "Unknown",
-          };
-        }),
-        actions: selectedServices.map((sid) => {
-          const s = services.find((srv) => srv.id === sid);
-          return {
-            id: sid,
-            name: s?.name || "Unknown",
-            price: s?.price || 0,
-          };
-        }),
+      await api.tech.generateCostEstimate(order.id, {
+        message: "Kosztorys naprawy",
+        partRequestList: selectedParts.map((sp) => ({
+          sparePartId: parseInt(sp.partId),
+          quantity: sp.quantity,
+        })),
+        serviceActionIds: selectedServices.map((id) => parseInt(id)),
       });
 
-      // Update Order with Diagnosis and Status
-      await api.orders.update(order.id, {
-        status: "WAITING_FOR_ACCEPTANCE",
-        // diagnosisDescription: notes,
-      });
+      // Update Order Status locally to reflect waiting for acceptance
+      // The backend should handle the status update, but we update frontend state for immediate feedback/redirection
+      setOrder({ ...order, status: "WAITING_FOR_ACCEPTANCE" });
 
       toast.success(
         `Diagnoza zakończona. Utworzono kosztorys na kwotę: ${partsCost + labourCost} PLN`,
@@ -187,9 +180,9 @@ export default function OrderDiagnosis() {
     }
   };
 
-  const handleConfirmPartUsage = async (partId: string, quantity: number) => {
+  const handleConfirmPartUsage = async (partId: string) => {
     try {
-      await api.parts.consume(partId, quantity);
+      await api.tech.confirmPartUsage(partId);
       setUsedParts([...usedParts, partId]);
       // Refresh parts to show updated stock
       const p = await api.parts.getAll();
@@ -203,23 +196,9 @@ export default function OrderDiagnosis() {
 
   const handleFinishRepair = async () => {
     if (!order) return;
-    // Check if all parts are used (optional, but good for UX)
-    if (existingEstimate && existingEstimate.parts.length > 0) {
-      const allUsed = existingEstimate.parts.every((p) =>
-        usedParts.includes(p.id),
-      );
-      if (
-        !allUsed &&
-        !confirm(
-          "Nie wszystkie części zostały oznaczone jako zużyte. Czy na pewno zakończyć naprawę?",
-        )
-      ) {
-        return;
-      }
-    }
 
     try {
-      await api.orders.updateStatus(order.id, "READY_FOR_PICKUP");
+      await api.tech.finishOrder(order.id);
       toast.success(
         'Naprawa zakończona. Status zmieniony na "Gotowe do odbioru".',
       );
@@ -227,6 +206,21 @@ export default function OrderDiagnosis() {
     } catch {
       showError("Błąd", "Nie udało się zakończyć naprawy.");
     }
+  };
+
+  const handleFinishRepairCheck = () => {
+    if (!order) return;
+    // Check if all parts are used (optional, but good for UX)
+    if (existingEstimate && existingEstimate.parts.length > 0) {
+      const allUsed = existingEstimate.parts.every((p) =>
+        usedParts.includes(p.id),
+      );
+      if (!allUsed) {
+        setFinishRepairOpen(true);
+        return;
+      }
+    }
+    handleFinishRepair();
   };
 
   if (!order) return <div>Ładowanie...</div>;
@@ -536,13 +530,37 @@ export default function OrderDiagnosis() {
 
           {status === "DIAGNOSING" && (
             <div className="flex gap-4 mt-6">
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={handleUnrepairable}
+              <AlertDialog
+                open={unrepairableOpen}
+                onOpenChange={setUnrepairableOpen}
               >
-                Oznacz jako Nienaprawialny
-              </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => setUnrepairableOpen(true)}
+                >
+                  Oznacz jako Nienaprawialny
+                </Button>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Czy jesteś pewien?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Ta operacja spowoduje oznaczenie zlecenia jako
+                      nienaprawialne i jego anulowanie. Jest to operacja
+                      nieodwracalna.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleUnrepairable}
+                      className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    >
+                      Tak, oznacz jako nienaprawialny
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               {/* The create quote button is inside the dialog trigger above, but we can also have a direct save if needed. 
                       For now, the flow forces quote creation to finish diagnosis. */}
             </div>
@@ -585,9 +603,7 @@ export default function OrderDiagnosis() {
                           <Button
                             size="sm"
                             disabled={!hasStock}
-                            onClick={() =>
-                              handleConfirmPartUsage(part.id, part.quantity)
-                            }
+                            onClick={() => handleConfirmPartUsage(part.id)}
                           >
                             {hasStock ? "Potwierdź Zużycie" : "Brak na stanie"}
                           </Button>
@@ -604,12 +620,34 @@ export default function OrderDiagnosis() {
                 </div>
 
                 <div className="pt-4 border-t">
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={handleFinishRepair}
+                  <AlertDialog
+                    open={finishRepairOpen}
+                    onOpenChange={setFinishRepairOpen}
                   >
-                    Zakończ Naprawę (Gotowe do Odbioru)
-                  </Button>
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={handleFinishRepairCheck}
+                    >
+                      Zakończ Naprawę (Gotowe do Odbioru)
+                    </Button>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Niewykorzystane części
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Nie wszystkie części z kosztorysu zostały oznaczone
+                          jako zużyte. Czy na pewno chcesz zakończyć naprawę?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleFinishRepair}>
+                          Kontynuuj mimo to
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

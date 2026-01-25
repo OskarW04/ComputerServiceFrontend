@@ -16,7 +16,7 @@ export default function ClientOrderHistory() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const data = await api.orders.getAll();
+      const data = await api.client.getOrders();
       // Filter for completed/cancelled orders
       const historyOrders = data.filter((o: RepairOrder) =>
         ["COMPLETED", "CANCELLED"].includes(o.status),

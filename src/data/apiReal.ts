@@ -128,6 +128,50 @@ export const api = {
       return response.data.map(idToString);
     },
   },
+  tech: {
+    getAssignedOrders: async () => {
+      const response = await axiosInstance.get("/api/tech/getAssignedOrders");
+      return response.data.map(idToString);
+    },
+    startDiagnosing: async (orderId: string) => {
+      const numId = idToNumber(orderId);
+      await axiosInstance.patch(`/api/tech/${numId}/startDiagnosing`);
+      return { id: orderId, status: "DIAGNOSING" };
+    },
+    finishOrder: async (orderId: string) => {
+      const numId = idToNumber(orderId);
+      await axiosInstance.put(`/api/tech/finish/${numId}`);
+      return { id: orderId, status: "READY_FOR_PICKUP" };
+    },
+    generateCostEstimate: async (
+      orderId: string,
+      data: {
+        message: string;
+        partRequestList: { sparePartId: number; quantity: number }[];
+        serviceActionIds: number[];
+      },
+    ) => {
+      const numId = idToNumber(orderId);
+      const response = await axiosInstance.post(
+        `/api/tech/${numId}/generateCostEst`,
+        data,
+      );
+      return idToString(response.data);
+    },
+    getAllServices: async () => {
+      const response = await axiosInstance.get("/api/manager/getAllServices");
+      return response.data.map(idToString);
+    },
+    getOrder: async (id: string) => {
+      const all = await api.tech.getAssignedOrders();
+      return all.find((o: RepairOrder) => o.id === id);
+    },
+    confirmPartUsage: async (partOrderId: string) => {
+      const numId = idToNumber(partOrderId);
+      await axiosInstance.post(`/api/warehouse/order/${numId}/receive`);
+      return { id: partOrderId, received: true };
+    },
+  },
   orders: {
     getAll: async () => {
       const response = await axiosInstance.get("/api/order/getAll");
