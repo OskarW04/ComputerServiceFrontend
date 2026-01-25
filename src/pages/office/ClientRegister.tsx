@@ -2,9 +2,9 @@ import { useState } from "react";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ export default function ClientRegister() {
     lastName: "",
     phone: "",
     email: "",
-    pin: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,18 +93,6 @@ export default function ClientRegister() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pin">Kod PIN (do logowania)</Label>
-              <Input
-                id="pin"
-                value={formData.pin}
-                onChange={handleChange}
-                required
-                placeholder="4 cyfry"
-                maxLength={4}
               />
             </div>
 

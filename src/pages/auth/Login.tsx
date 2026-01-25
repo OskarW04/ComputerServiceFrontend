@@ -13,6 +13,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useErrorDialog } from "@/context/GlobalErrorDialogContext";
+import { api } from "@/data/api";
+import { toast } from "sonner";
 
 export default function Login() {
   const { loginEmployee, loginClient } = useAuth();
@@ -27,6 +29,7 @@ export default function Login() {
   // Client Login State
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
+  const [pinSent, setPinSent] = useState(false);
 
   const handleEmployeeLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +60,24 @@ export default function Login() {
         "Błąd Logowania",
         "Logowanie nieudane. Sprawdź numer telefonu i PIN.",
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendPin = async () => {
+    if (!phone) {
+      toast.error("Wprowadź numer telefonu");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.auth.generatePIN(phone);
+      toast.info(`Twój PIN to: ${res.pin}`);
+      setPinSent(true);
+    } catch (error) {
+      console.error("Error sending PIN", error);
+      toast.error("Błąd wysyłania PIN-u.");
     } finally {
       setLoading(false);
     }
@@ -110,14 +131,24 @@ export default function Login() {
               <form onSubmit={handleClientLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Numer Telefonu</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="123456789"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="123456789"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleSendPin}
+                      disabled={loading}
+                    >
+                      {pinSent ? "Wyślij ponownie" : "Wyślij PIN"}
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pin">Kod PIN</Label>
@@ -128,9 +159,14 @@ export default function Login() {
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     required
+                    disabled={!pinSent}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || !pinSent}
+                >
                   {loading ? "Logowanie..." : "Zaloguj jako Klient"}
                 </Button>
               </form>

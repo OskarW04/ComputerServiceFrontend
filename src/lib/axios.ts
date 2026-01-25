@@ -12,6 +12,11 @@ export const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Skip auth header for login endpoints
+    if (config.url?.includes("/auth/login")) {
+      return config;
+    }
+
     const userJson = localStorage.getItem("user");
     if (userJson) {
       try {

@@ -42,16 +42,10 @@ const idToNumber = (id: string | undefined) => {
 export const api = {
   auth: {
     loginEmployee: async (email: string, password?: string) => {
-      const response = await axiosInstance.post(
-        "/api/auth/login",
-        {
-          email,
-          password,
-        },
-        {
-          headers: { Authorization: "" },
-        },
-      );
+      const response = await axiosInstance.post("/api/auth/login", {
+        email,
+        password,
+      });
       const authData = response.data;
 
       const meResponse = await axiosInstance.get("/api/auth/getMe", {
@@ -62,24 +56,15 @@ export const api = {
       return { ...me, ...authData };
     },
     loginClient: async (phone: string, pin: string) => {
-      const response = await axiosInstance.post(
-        "/api/auth/login",
-        {
-          email: phone,
-          password: pin,
-        },
-        {
-          headers: { Authorization: "" },
-        },
-      );
+      const response = await axiosInstance.post("/api/auth/login", {
+        email: phone,
+        password: pin,
+      });
       const authData = response.data;
 
-      const clientResponse = await axiosInstance.get(
-        `/api/office/get/${phone}`,
-        {
-          headers: { Authorization: `Bearer ${authData.token}` },
-        },
-      );
+      const clientResponse = await axiosInstance.get("/api/auth/getMeClient", {
+        headers: { Authorization: `Bearer ${authData.token}` },
+      });
       const clientDetails = idToString(clientResponse.data);
 
       return {
@@ -89,7 +74,7 @@ export const api = {
     },
     generatePIN: async (phone: string) => {
       const response = await axiosInstance.post("/api/auth/generatePIN", {
-        phoneNumber: phone,
+        phone: phone,
       });
       return response.data;
     },
