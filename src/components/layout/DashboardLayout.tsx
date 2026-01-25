@@ -22,7 +22,7 @@ export default function DashboardLayout({
       return (user as { username: string }).username;
     }
     if ("phone" in user) {
-      return `Klient ${user.phone}`;
+      return `Klient ${(user as { phone: string }).phone}`;
     }
     return "Użytkownik";
   };
