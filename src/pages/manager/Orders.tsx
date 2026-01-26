@@ -91,13 +91,15 @@ export default function ManagerOrders() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => openAssign(row.original)}
-          >
-            Przypisz
-          </Button>
+          {row.original.status === "WAITING_FOR_TECHNICIAN" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openAssign(row.original)}
+            >
+              Przypisz
+            </Button>
+          )}
         </div>
       ),
     },

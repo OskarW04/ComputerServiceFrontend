@@ -233,7 +233,7 @@ function AppRoutes() {
       <Route
         path="/warehouse/inventory"
         element={
-          <ProtectedRoute allowedRoles={["WAREHOUSE", "MANAGER"]}>
+          <ProtectedRoute allowedRoles={["WAREHOUSE", "MANAGER", "TECHNICIAN"]}>
             <DashboardLayout>
               <WarehouseInventory />
             </DashboardLayout>
