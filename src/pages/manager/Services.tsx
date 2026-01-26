@@ -79,9 +79,10 @@ export default function ManagerServices() {
 
   const handleConfirmDelete = async () => {
     if (serviceToDelete) {
-      // Mock delete API call since it's missing in schema/apiReal but assumed for example
-      // await api.services.delete(serviceToDelete.id);
-      toast.error("Usuwanie usług nie jest zaimplementowane w API.");
+      await api.services.delete(serviceToDelete.id);
+      toast.success("Usługa usunięta.");
+      const data = await api.services.getAll();
+      setServices(data);
       setDeleteOpen(false);
       setServiceToDelete(null);
     }

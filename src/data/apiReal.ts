@@ -18,16 +18,14 @@ const idToString = (obj: any): any => {
   }
   if (typeof obj === "object") {
     const newObj = { ...obj };
-    if (typeof newObj.id === "number") {
-      newObj.id = newObj.id.toString();
-    }
-    if (newObj.sparePart) newObj.sparePart = idToString(newObj.sparePart);
-    if (newObj.costEstimateResponse) {
-      newObj.costEstimateResponse = idToString(newObj.costEstimateResponse);
-      if (newObj.costEstimateResponse.parts) {
-        newObj.costEstimateResponse.parts = idToString(
-          newObj.costEstimateResponse.parts,
-        );
+    for (const key in newObj) {
+      if (key === "id" || key.endsWith("Id")) {
+        if (typeof newObj[key] === "number") {
+          newObj[key] = newObj[key].toString();
+        }
+      } else if (typeof newObj[key] === "object" && newObj[key] !== null) {
+        // Recursively handle nested objects/arrays
+        newObj[key] = idToString(newObj[key]);
       }
     }
     return newObj;
@@ -127,6 +125,22 @@ export const api = {
       const response = await axiosInstance.get("/api/client/getClientOrders");
       return response.data.map(idToString);
     },
+    generatePdf: async (orderNumber: string) => {
+      const response = await axiosInstance.get(
+        `/api/client/order/${orderNumber}/generatePdf`,
+        { responseType: "blob" },
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `dokument_zlecenia_${orderNumber.replace("/", "-")}.pdf`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    },
   },
   tech: {
     getAssignedOrders: async () => {
@@ -159,7 +173,7 @@ export const api = {
       return idToString(response.data);
     },
     getAllServices: async () => {
-      const response = await axiosInstance.get("/api/manager/getAllServices");
+      const response = await axiosInstance.get("/api/tech/services/getAll");
       return response.data.map(idToString);
     },
     getOrder: async (id: string) => {
@@ -281,11 +295,8 @@ export const api = {
       });
       return response.data;
     },
-    create: async (part: Omit<SparePart, "id" | "stockQuantity">) => {
-      const response = await axiosInstance.post("/api/warehouse/addPart", {
-        ...part,
-        stockQuantity: 0,
-      });
+    create: async (part: Omit<SparePart, "id">) => {
+      const response = await axiosInstance.post("/api/warehouse/addPart", part);
       return idToString(response.data);
     },
   },
@@ -342,7 +353,7 @@ export const api = {
 
   services: {
     getAll: async () => {
-      const response = await axiosInstance.get("/api/manager/services/getAll");
+      const response = await axiosInstance.get("/api/tech/services/getAll");
       return response.data.map(idToString);
     },
     create: async (service: Omit<ServiceAction, "id">) => {
@@ -365,20 +376,21 @@ export const api = {
     },
   },
   invoices: {
-    create: async (invoice: { orderId: string; paymentMethod: string }) => {
+    create: async (invoice: {
+      orderId: string;
+      paymentMethod: string;
+      docType: "INVOICE" | "RECEIPT";
+      nip?: string;
+    }) => {
       const response = await axiosInstance.post(
         "/api/office/order/createSaleDocument",
         {
           orderId: idToNumber(invoice.orderId),
-          docType: "INVOICE",
-          nip: "",
+          docType: invoice.docType,
+          nip: invoice.nip || "",
         },
       );
       return idToString(response.data);
-    },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getByOrderId: async (_orderId: string) => {
-      return null;
     },
     generatePdf: async (orderNumber: string) => {
       const response = await axiosInstance.get(
@@ -476,6 +488,18 @@ export const api = {
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     reportDiscrepancy: async (_data: unknown) => {
+      return true;
+    },
+    getAllMissingParts: async () => {
+      const response = await axiosInstance.get(
+        "/api/warehouse/parts/getAllWaiting",
+      );
+      return response.data.map(idToString);
+    },
+  },
+  manager: {
+    deleteOrder: async (orderId: string) => {
+      await axiosInstance.delete(`/api/manager/order/${idToNumber(orderId)}`);
       return true;
     },
   },

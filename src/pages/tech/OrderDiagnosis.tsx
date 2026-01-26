@@ -3,13 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { api } from "@/data/api";
 import type {
   RepairOrder,
@@ -58,22 +52,23 @@ export default function OrderDiagnosis() {
   const [selectedParts, setSelectedParts] = useState<
     { partId: string; quantity: number }[]
   >([]);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>(["1"]);
   const [existingEstimate, setExistingEstimate] = useState<CostEstimate | null>(
     null,
   );
 
-  // Part Request State
-  const [requestPartOpen, setRequestPartOpen] = useState(false);
-  const [requestPartId, setRequestPartId] = useState("");
-  const [requestQuantity, setRequestQuantity] = useState("1");
-
   // Repair Execution State
-  const [usedParts, setUsedParts] = useState<string[]>([]); // IDs of parts marked as used
+  // const [usedParts, setUsedParts] = useState<string[]>([]); // Removed
 
   // AlertDialog State
   const [unrepairableOpen, setUnrepairableOpen] = useState(false);
-  const [finishRepairOpen, setFinishRepairOpen] = useState(false);
+  // const [finishRepairOpen, setFinishRepairOpen] = useState(false);
+
+  // Quote Filtering State
+  const [partSearch, setPartSearch] = useState("");
+  const filteredParts = parts.filter((p) =>
+    p.name.toLowerCase().includes(partSearch.toLowerCase()),
+  );
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -160,40 +155,6 @@ export default function OrderDiagnosis() {
     }
   };
 
-  const handleRequestPart = async () => {
-    if (!order) return;
-    try {
-      await api.partOrders.create({
-        sparePart: { id: requestPartId } as unknown as SparePart, // Mocking nested sparePart
-        quantity: parseInt(requestQuantity),
-        // status: "ORDERED", // Omitted in creation
-        orderDate: new Date().toISOString(),
-        // estimatedDelivery: new Date(Date.now() + 86400000 * 3).toISOString(), // Omitted in creation
-        // repairOrderId: order.id, // Not in PartOrder schema
-      });
-      toast.success("Zapotrzebowanie zgłoszone.");
-      setRequestPartOpen(false);
-      await api.orders.updateStatus(order.id, "WAITING_FOR_PARTS");
-      navigate("/tech/tasks");
-    } catch {
-      showError("Błąd", "Błąd zgłaszania zapotrzebowania.");
-    }
-  };
-
-  const handleConfirmPartUsage = async (partId: string) => {
-    try {
-      await api.tech.confirmPartUsage(partId);
-      setUsedParts([...usedParts, partId]);
-      // Refresh parts to show updated stock
-      const p = await api.parts.getAll();
-      setParts(p);
-      toast.success("Zużycie części potwierdzone.");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Błąd zużycia części";
-      showError("Błąd", msg);
-    }
-  };
-
   const handleFinishRepair = async () => {
     if (!order) return;
 
@@ -206,21 +167,6 @@ export default function OrderDiagnosis() {
     } catch {
       showError("Błąd", "Nie udało się zakończyć naprawy.");
     }
-  };
-
-  const handleFinishRepairCheck = () => {
-    if (!order) return;
-    // Check if all parts are used (optional, but good for UX)
-    if (existingEstimate && existingEstimate.parts.length > 0) {
-      const allUsed = existingEstimate.parts.every((p) =>
-        usedParts.includes(p.id),
-      );
-      if (!allUsed) {
-        setFinishRepairOpen(true);
-        return;
-      }
-    }
-    handleFinishRepair();
   };
 
   if (!order) return <div>Ładowanie...</div>;
@@ -370,97 +316,196 @@ export default function OrderDiagnosis() {
                         Zakończ Diagnozę i Utwórz Kosztorys
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
                       <DialogHeader>
                         <DialogTitle>Nowy Kosztorys</DialogTitle>
                       </DialogHeader>
-                      <div className="py-4 space-y-4">
-                        <div className="space-y-2">
-                          <Label>Usługi (Robocizna)</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {services.map((s) => (
-                              <div
-                                key={s.id}
-                                className="flex items-center space-x-2"
-                              >
-                                <input
-                                  type="checkbox"
-                                  id={`svc-${s.id}`}
-                                  checked={selectedServices.includes(s.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked)
-                                      setSelectedServices([
-                                        ...selectedServices,
-                                        s.id,
-                                      ]);
-                                    else
-                                      setSelectedServices(
-                                        selectedServices.filter(
-                                          (id) => id !== s.id,
-                                        ),
-                                      );
-                                  }}
-                                />
-                                <label htmlFor={`svc-${s.id}`}>
-                                  {s.name} ({s.price} PLN)
-                                </label>
-                              </div>
-                            ))}
+
+                      <div className="flex-1 overflow-y-auto px-1 pr-4 min-h-0 space-y-6">
+                        {/* Services Section */}
+                        <div className="space-y-3">
+                          <div className="sticky top-0 bg-background/95 backdrop-blur z-10 py-2 border-b">
+                            <Label className="text-base font-semibold">
+                              Usługi (Robocizna)
+                            </Label>
                           </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Części</Label>
-                          <div className="space-y-2">
-                            {parts.map((p) => (
-                              <div
-                                key={p.id}
-                                className="flex items-center justify-between border p-2 rounded"
-                              >
-                                <span>
-                                  {p.name} ({p.price} PLN) - Stan:{" "}
-                                  {p.stockQuantity}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      const current = selectedParts.find(
-                                        (sp) => sp.partId === p.id,
-                                      );
-                                      if (current) {
-                                        setSelectedParts(
-                                          selectedParts.map((sp) =>
-                                            sp.partId === p.id
-                                              ? {
-                                                  ...sp,
-                                                  quantity: sp.quantity + 1,
-                                                }
-                                              : sp,
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {services.map((s) => {
+                              const isMandatory = String(s.id) === "1";
+                              return (
+                                <div
+                                  key={s.id}
+                                  className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${isMandatory ? "bg-muted/30" : "hover:bg-muted/50"}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    id={`svc-${s.id}`}
+                                    className="mt-1 h-4 w-4 rounded border-gray-300 disabled:opacity-50"
+                                    checked={
+                                      isMandatory ||
+                                      selectedServices.includes(String(s.id))
+                                    }
+                                    disabled={isMandatory}
+                                    onChange={(e) => {
+                                      if (isMandatory) return;
+                                      if (e.target.checked)
+                                        setSelectedServices([
+                                          ...selectedServices,
+                                          String(s.id),
+                                        ]);
+                                      else
+                                        setSelectedServices(
+                                          selectedServices.filter(
+                                            (id) => id !== String(s.id),
                                           ),
                                         );
-                                      } else {
-                                        setSelectedParts([
-                                          ...selectedParts,
-                                          { partId: p.id, quantity: 1 },
-                                        ]);
-                                      }
                                     }}
+                                  />
+                                  <label
+                                    htmlFor={`svc-${s.id}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full"
                                   >
-                                    +
-                                  </Button>
-                                  <span>
-                                    {selectedParts.find(
-                                      (sp) => sp.partId === p.id,
-                                    )?.quantity || 0}
-                                  </span>
+                                    {s.name}
+                                    <span className="block text-muted-foreground font-normal mt-1">
+                                      {s.price} PLN
+                                    </span>
+                                  </label>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Parts Section */}
+                        <div className="space-y-3">
+                          <div className="sticky top-0 bg-background/95 backdrop-blur z-10 py-2 border-b space-y-2">
+                            <Label className="text-base font-semibold">
+                              Części
+                            </Label>
+                            <Input
+                              placeholder="Szukaj części..."
+                              value={partSearch}
+                              onChange={(e) => setPartSearch(e.target.value)}
+                              className="h-8"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            {filteredParts.length === 0 && (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                Brak części pasujących do zapytania.
+                              </p>
+                            )}
+                            {filteredParts.map((p) => {
+                              const currentQty =
+                                selectedParts.find((sp) => sp.partId === p.id)
+                                  ?.quantity || 0;
+                              return (
+                                <div
+                                  key={p.id}
+                                  className={`flex items-center justify-between border p-3 rounded-lg transition-colors ${currentQty > 0 ? "bg-blue-50/50 border-blue-200" : "hover:bg-muted/50"}`}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-sm">
+                                      {p.name}
+                                    </span>
+                                    <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                      <span>Cena: {p.price} PLN</span>
+                                      <span>Stan: {p.stockQuantity}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3">
+                                    {currentQty > 0 && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                        onClick={() => {
+                                          const current = selectedParts.find(
+                                            (sp) => sp.partId === p.id,
+                                          );
+                                          if (current && current.quantity > 1) {
+                                            setSelectedParts(
+                                              selectedParts.map((sp) =>
+                                                sp.partId === p.id
+                                                  ? {
+                                                      ...sp,
+                                                      quantity: sp.quantity - 1,
+                                                    }
+                                                  : sp,
+                                              ),
+                                            );
+                                          } else {
+                                            setSelectedParts(
+                                              selectedParts.filter(
+                                                (sp) => sp.partId !== p.id,
+                                              ),
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        -
+                                      </Button>
+                                    )}
+
+                                    <span
+                                      className={`w-6 text-center font-mono font-medium ${currentQty > 0 ? "text-primary" : "text-muted-foreground"}`}
+                                    >
+                                      {currentQty}
+                                    </span>
+
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="h-8 w-8 bg-background"
+                                      onClick={() => {
+                                        const current = selectedParts.find(
+                                          (sp) => sp.partId === p.id,
+                                        );
+                                        if (current) {
+                                          setSelectedParts(
+                                            selectedParts.map((sp) =>
+                                              sp.partId === p.id
+                                                ? {
+                                                    ...sp,
+                                                    quantity: sp.quantity + 1,
+                                                  }
+                                                : sp,
+                                            ),
+                                          );
+                                        } else {
+                                          setSelectedParts([
+                                            ...selectedParts,
+                                            { partId: p.id, quantity: 1 },
+                                          ]);
+                                        }
+                                      }}
+                                      disabled={currentQty >= p.stockQuantity}
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
-                      <DialogFooter>
+                      <DialogFooter className="mt-2 pt-2 border-t">
+                        <div className="mr-auto text-sm text-muted-foreground flex items-center">
+                          Suma:{" "}
+                          <span className="font-bold text-foreground ml-1">
+                            {services
+                              .filter((s) => selectedServices.includes(s.id))
+                              .reduce((acc, s) => acc + s.price, 0) +
+                              selectedParts.reduce((acc, sp) => {
+                                const p = parts.find((p) => p.id === sp.partId);
+                                return acc + (p ? p.price * sp.quantity : 0);
+                              }, 0)}{" "}
+                            PLN
+                          </span>
+                        </div>
                         <Button onClick={handleCreateQuote}>
                           Zatwierdź Kosztorys
                         </Button>
@@ -468,62 +513,6 @@ export default function OrderDiagnosis() {
                     </DialogContent>
                   </Dialog>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Części</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Dialog
-                  open={requestPartOpen}
-                  onOpenChange={setRequestPartOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="secondary" className="w-full">
-                      Zgłoś Zapotrzebowanie
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Zgłoś Brak Części</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                      <div className="space-y-2">
-                        <Label>Wybierz Część</Label>
-                        <Select
-                          value={requestPartId}
-                          onValueChange={setRequestPartId}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Wybierz..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {parts.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Ilość</Label>
-                        <Input
-                          type="number"
-                          value={requestQuantity}
-                          onChange={(e) => setRequestQuantity(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={handleRequestPart}>
-                        Wyślij Zgłoszenie
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
               </CardContent>
             </Card>
           </div>
@@ -579,10 +568,6 @@ export default function OrderDiagnosis() {
                   </h3>
                   {existingEstimate?.parts?.map((part, idx) => {
                     const stockPart = parts.find((p) => p.id === part.id);
-                    const isUsed = usedParts.includes(part.id);
-                    const hasStock =
-                      (stockPart?.stockQuantity || 0) >= part.quantity;
-
                     return (
                       <div
                         key={idx}
@@ -595,19 +580,6 @@ export default function OrderDiagnosis() {
                             {stockPart?.stockQuantity || 0}
                           </p>
                         </div>
-                        {isUsed ? (
-                          <Badge variant="default" className="bg-green-600">
-                            Zużyto
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            disabled={!hasStock}
-                            onClick={() => handleConfirmPartUsage(part.id)}
-                          >
-                            {hasStock ? "Potwierdź Zużycie" : "Brak na stanie"}
-                          </Button>
-                        )}
                       </div>
                     );
                   })}
@@ -620,34 +592,12 @@ export default function OrderDiagnosis() {
                 </div>
 
                 <div className="pt-4 border-t">
-                  <AlertDialog
-                    open={finishRepairOpen}
-                    onOpenChange={setFinishRepairOpen}
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={handleFinishRepair}
                   >
-                    <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={handleFinishRepairCheck}
-                    >
-                      Zakończ Naprawę (Gotowe do Odbioru)
-                    </Button>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Niewykorzystane części
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Nie wszystkie części z kosztorysu zostały oznaczone
-                          jako zużyte. Czy na pewno chcesz zakończyć naprawę?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleFinishRepair}>
-                          Kontynuuj mimo to
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    Zakończ Naprawę (Gotowe do Odbioru)
+                  </Button>
                 </div>
               </CardContent>
             </Card>

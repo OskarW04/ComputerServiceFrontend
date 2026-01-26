@@ -25,7 +25,6 @@ import TechOrderDiagnosis from "@/pages/tech/OrderDiagnosis";
 
 // Warehouse Pages
 import WarehouseInventory from "@/pages/warehouse/Inventory";
-import WarehouseDelivery from "@/pages/warehouse/WarehouseDelivery";
 
 // Manager Pages
 import ManagerDashboard from "@/pages/manager/Dashboard";
@@ -234,19 +233,9 @@ function AppRoutes() {
       <Route
         path="/warehouse/inventory"
         element={
-          <ProtectedRoute allowedRoles={["WAREHOUSE", "MANAGER", "TECHNICIAN"]}>
-            <DashboardLayout>
-              <WarehouseInventory />
-            </DashboardLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/warehouse/delivery"
-        element={
           <ProtectedRoute allowedRoles={["WAREHOUSE", "MANAGER"]}>
             <DashboardLayout>
-              <WarehouseDelivery />
+              <WarehouseInventory />
             </DashboardLayout>
           </ProtectedRoute>
         }

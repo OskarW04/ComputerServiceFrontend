@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Card,
@@ -9,7 +9,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { api } from "@/data/api";
-import type { SparePart, PartOrder } from "@/data/schema";
+import type {
+  SparePart,
+  PartOrder,
+  MissingPartsResponse,
+  MissingPart,
+} from "@/data/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -28,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function WarehouseInventory() {
-  const navigate = useNavigate();
+  //   const navigate = useNavigate();
   const [parts, setParts] = useState<SparePart[]>([]);
   const [orders, setOrders] = useState<PartOrder[]>([]);
   const [addPartOpen, setAddPartOpen] = useState(false);
@@ -56,34 +61,47 @@ export default function WarehouseInventory() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const partsData = await api.parts.getAll();
-      setParts(partsData);
-      // Mock fetch orders
-      setOrders([]);
+      try {
+        const partsData = await api.parts.getAll();
+        setParts(partsData);
+        const ordersData = await api.partOrders.getAll();
+        setOrders(ordersData);
+      } catch (error) {
+        console.error("Failed to fetch data", error);
+        toast.error("Błąd pobierania danych");
+      }
     };
     fetchData();
   }, []);
 
   const handleAddPart = async () => {
-    // Mock adding part
-    const part: SparePart = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newPart.name,
-      type: newPart.category,
-      stockQuantity: parseInt(newPart.quantity),
-      minQuantity: parseInt(newPart.minQuantity),
-      price: parseFloat(newPart.price),
-    };
-    setParts([...parts, part]);
-    setAddPartOpen(false);
-    setNewPart({
-      name: "",
-      category: "",
-      quantity: "",
-      minQuantity: "",
-      price: "",
-    });
-    alert("Część dodana pomyślnie!");
+    try {
+      const part = {
+        name: newPart.name,
+        type: newPart.category,
+        stockQuantity: parseInt(newPart.quantity) || 0,
+        minQuantity: parseInt(newPart.minQuantity) || 0,
+        price: parseFloat(newPart.price) || 0,
+      };
+
+      await api.parts.create(part);
+
+      const updatedParts = await api.parts.getAll();
+      setParts(updatedParts);
+
+      setAddPartOpen(false);
+      setNewPart({
+        name: "",
+        category: "",
+        quantity: "",
+        minQuantity: "",
+        price: "",
+      });
+      toast.success("Część dodana pomyślnie!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Błąd dodawania części");
+    }
   };
 
   const handleOrderParts = async () => {
@@ -128,6 +146,46 @@ export default function WarehouseInventory() {
     setParts(updatedParts);
     toast.success("Dostawa przyjęta. Stan magazynowy zaktualizowany.");
   };
+
+  // Derive shortages/requests from RepairOrders
+  // Replaced with API call result
+  const [shortages, setShortages] = useState<
+    {
+      orderId: string;
+      orderNumber: string;
+      partId: string;
+      partName: string;
+      needed: number;
+      inStock: number;
+      missing: number;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const fetchShortages = async () => {
+      try {
+        const data = await api.warehouse.getAllMissingParts();
+        const flatShortages = data.flatMap((item: MissingPartsResponse) =>
+          item.parts.map((p: MissingPart) => ({
+            orderId: item.orderId,
+            orderNumber: item.orderNumber,
+            partId: p.id,
+            partName: p.name,
+            needed: p.neededCount,
+            inStock: p.currentCount,
+            missing:
+              p.neededCount - p.currentCount > 0
+                ? p.neededCount - p.currentCount
+                : 0,
+          })),
+        );
+        setShortages(flatShortages);
+      } catch (e) {
+        console.error("Failed to fetch missing parts", e);
+      }
+    };
+    fetchShortages();
+  }, [parts]); // Refresh when parts change? Or manual refresh? For now on mount/parts change.
 
   const partColumns: ColumnDef<SparePart>[] = [
     {
@@ -216,17 +274,57 @@ export default function WarehouseInventory() {
     },
   ];
 
+  const shortageColumns: ColumnDef<(typeof shortages)[0]>[] = [
+    {
+      accessorKey: "orderNumber",
+      header: "Zlecenie",
+    },
+    {
+      accessorKey: "partName",
+      header: "Część",
+    },
+    {
+      accessorKey: "needed",
+      header: "Potrzebne",
+    },
+    {
+      accessorKey: "inStock",
+      header: "Na stanie",
+    },
+    {
+      accessorKey: "missing",
+      header: "Brak",
+      cell: ({ row }) => (
+        <span className="font-bold text-red-600">{row.original.missing}</span>
+      ),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <Button
+          size="sm"
+          onClick={() => {
+            setNewOrder({
+              sparePartId: row.original.partId,
+              quantity: row.original.missing.toString(),
+              estimatedDelivery: new Date(Date.now() + 86400000 * 2)
+                .toISOString()
+                .split("T")[0],
+            });
+            setOrderPartsOpen(true);
+          }}
+        >
+          Zamów
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Magazyn</h2>
         <div className="space-x-2">
-          <Button
-            variant="secondary"
-            onClick={() => navigate("/warehouse/delivery")}
-          >
-            Przyjmij Dostawę
-          </Button>
           <Dialog open={orderPartsOpen} onOpenChange={setOrderPartsOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">Zamów Części</Button>
@@ -414,6 +512,7 @@ export default function WarehouseInventory() {
         <TabsList>
           <TabsTrigger value="inventory">Stan Magazynowy</TabsTrigger>
           <TabsTrigger value="orders">Zamówienia Części</TabsTrigger>
+          <TabsTrigger value="requests">Zapotrzebowania</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory">
@@ -449,6 +548,26 @@ export default function WarehouseInventory() {
                 data={orders}
                 searchKey="id"
                 searchPlaceholder="Szukaj zamówienia..."
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="requests">
+          <Card>
+            <CardHeader>
+              <CardTitle>Wewnętrzne Zapotrzebowanie</CardTitle>
+              <CardDescription>
+                Lista części potrzebnych do realizacji zleceń, których brakuje
+                na stanie.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={shortageColumns}
+                data={shortages}
+                searchKey="orderNumber"
+                searchPlaceholder="Szukaj zlecenia..."
               />
             </CardContent>
           </Card>

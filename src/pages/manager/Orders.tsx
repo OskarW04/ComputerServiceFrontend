@@ -104,14 +104,17 @@ export default function ManagerOrders() {
       accessorKey: "assignedTechnicianId",
       header: "Technik",
       cell: ({ row }) => {
+        const order = row.original;
         const tech = technicians.find(
-          (t) => t.id === row.original.assignedTechnicianId,
+          (t) => t.id === order.assignedTechnicianId,
         );
-        return tech ? (
-          `${tech.firstName} ${tech.lastName}`
-        ) : (
-          <span className="text-muted-foreground">Nieprzypisany</span>
-        );
+
+        if (tech) return `${tech.firstName} ${tech.lastName}`;
+        if (order.technicianName) return order.technicianName;
+        if (order.assignedTechnician)
+          return `${order.assignedTechnician.firstName} ${order.assignedTechnician.lastName}`;
+
+        return <span className="text-muted-foreground">Nieprzypisany</span>;
       },
     },
     {

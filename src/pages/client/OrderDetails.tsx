@@ -8,19 +8,21 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { api } from "@/data/api";
-import type { RepairOrder, CostEstimate } from "@/data/schema";
+import type { RepairOrder, CostEstimate, Invoice } from "@/data/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatStatus } from "@/lib/utils";
+import { format } from "date-fns";
 
 export default function ClientOrderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<RepairOrder | null>(null);
   const [estimate, setEstimate] = useState<CostEstimate | null>(null);
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -32,6 +34,9 @@ export default function ClientOrderDetails() {
           if (data?.costEstimateResponse) {
             setEstimate(data.costEstimateResponse);
           }
+
+          const inv = await api.invoices.getByOrderId(id);
+          setInvoice(inv || null);
         } catch (error) {
           console.error("Failed to fetch order", error);
           toast.error("Nie udało się pobrać szczegółów zlecenia");
@@ -100,21 +105,62 @@ export default function ClientOrderDetails() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Szczegóły Urządzenia</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-semibold">Urządzenie</h4>
-              <p>{order.deviceDescription}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold">Opis Problemu</h4>
-              <p>{order.problemDescription}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Szczegóły Urządzenia</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold">Urządzenie</h4>
+                <p>{order.deviceDescription}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Opis Problemu</h4>
+                <p>{order.problemDescription}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {(invoice || order.isSaleDocumentGenerated) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Faktura / Paragon</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {invoice && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Numer:</span>
+                      <span className="font-mono">
+                        {invoice.documentNumber}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Data:</span>
+                      <span>
+                        {format(new Date(invoice.issueDate), "yyyy-MM-dd")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kwota:</span>
+                      <span className="font-bold">
+                        {invoice.totalAmount.toFixed(2)} PLN
+                      </span>
+                    </div>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => api.client.generatePdf(order.orderNumber)}
+                >
+                  Pobierz Fakturę/Paragon
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {estimate && (
           <Card>

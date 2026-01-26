@@ -13,12 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/data/api";
-import type {
-  RepairOrder,
-  CostEstimate,
-  Invoice,
-  PaymentMethod,
-} from "@/data/schema";
+import type { RepairOrder, CostEstimate, PaymentMethod } from "@/data/schema";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -28,7 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import { useErrorDialog } from "@/context/GlobalErrorDialogContext";
 import { formatStatus } from "@/lib/utils";
@@ -39,7 +33,6 @@ export default function OfficeOrderDetails() {
   const { showError } = useErrorDialog();
   const [order, setOrder] = useState<RepairOrder | null>(null);
   const [estimate, setEstimate] = useState<CostEstimate | null>(null);
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Edit State
@@ -53,6 +46,8 @@ export default function OfficeOrderDetails() {
   // Payment State
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [docType, setDocType] = useState<"RECEIPT" | "INVOICE">("RECEIPT");
+  const [nip, setNIP] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,9 +64,6 @@ export default function OfficeOrderDetails() {
 
         const estimates = await api.estimates.getByOrderId(id);
         if (estimates.length > 0) setEstimate(estimates[0]);
-
-        const inv = await api.invoices.getByOrderId(id);
-        setInvoice(inv || null);
       }
     };
     fetchData();
@@ -140,19 +132,26 @@ export default function OfficeOrderDetails() {
     setLoading(true);
 
     try {
-      // 1. Register Payment
+      if (docType === "INVOICE" && !nip) {
+        toast.error("Podaj NIP do faktury.");
+        setLoading(false);
+        return;
+      }
+
+      // 1. Create Invoice (Must be before payment)
+      await api.invoices.create({
+        orderId: order.id,
+        paymentMethod: paymentMethod,
+        docType,
+        nip,
+      });
+
+      // 2. Register Payment
       await api.payments.create({
         orderId: order.id,
         amount: estimate.totalCost,
         method: paymentMethod,
       });
-
-      // 2. Create Invoice
-      const newInvoice = await api.invoices.create({
-        orderId: order.id,
-        paymentMethod: paymentMethod, // retained for consistency/logging even if API ignores it
-      });
-      setInvoice(newInvoice);
 
       // 3. Update Order Status
       await api.orders.updateStatus(order.id, "COMPLETED");
@@ -352,34 +351,18 @@ export default function OfficeOrderDetails() {
             </CardContent>
           </Card>
 
-          {invoice && (
+          {order.isSaleDocumentGenerated && (
             <Card>
               <CardHeader>
                 <CardTitle>Faktura / Paragon</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Numer:</span>
-                  <span className="font-mono">{invoice.documentNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Data:</span>
-                  <span>
-                    {format(new Date(invoice.issueDate), "yyyy-MM-dd")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Kwota:</span>
-                  <span className="font-bold">
-                    {invoice.totalAmount.toFixed(2)} PLN
-                  </span>
-                </div>
                 <Button
                   variant="outline"
                   className="w-full mt-4"
                   onClick={() => api.invoices.generatePdf(order.orderNumber)}
                 >
-                  Drukuj Dokument
+                  Pobierz Fakturę/Paragon
                 </Button>
               </CardContent>
             </Card>
@@ -400,6 +383,31 @@ export default function OfficeOrderDetails() {
               <span>Do Zapłaty:</span>
               <span>{estimate?.totalCost.toFixed(2)} PLN</span>
             </div>
+            <div className="space-y-2">
+              <Label>Rodzaj Dokumentu</Label>
+              <Select
+                value={docType}
+                onValueChange={(v) => setDocType(v as "RECEIPT" | "INVOICE")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RECEIPT">Paragon</SelectItem>
+                  <SelectItem value="INVOICE">Faktura VAT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {docType === "INVOICE" && (
+              <div className="space-y-2">
+                <Label>NIP</Label>
+                <Input
+                  value={nip}
+                  onChange={(e) => setNIP(e.target.value)}
+                  placeholder="Numer NIP"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Metoda Płatności</Label>
               <Select

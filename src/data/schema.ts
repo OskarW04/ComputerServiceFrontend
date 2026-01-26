@@ -96,7 +96,24 @@ export interface RepairOrder {
   managerNotes?: string;
   costEstimateResponse?: CostEstimate;
   assignedTechnicianId?: string;
+  assignedTechnician?: Employee;
   totalWorkTimeMinutes?: number;
+  isSaleDocumentGenerated?: boolean;
+}
+
+export interface MissingPart {
+  id: string;
+  name: string;
+  type: string;
+  currentCount: number;
+  neededCount: number;
+  price: number;
+}
+
+export interface MissingPartsResponse {
+  orderId: string;
+  orderNumber: string;
+  parts: MissingPart[];
 }
 
 export interface Invoice {
