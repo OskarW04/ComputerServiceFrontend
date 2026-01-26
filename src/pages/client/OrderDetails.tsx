@@ -144,13 +144,50 @@ export default function ClientOrderDetails() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span>Części:</span>
-                <span>{estimate.partsCost.toFixed(2)} PLN</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Robocizna:</span>
-                <span>{estimate.labourCost.toFixed(2)} PLN</span>
+              <div className="border rounded-md p-3 text-sm space-y-3 mb-4">
+                <div>
+                  <p className="font-semibold mb-1">Części:</p>
+                  {estimate.parts.length > 0 ? (
+                    <ul className="space-y-1">
+                      {estimate.parts.map((p, idx) => (
+                        <li
+                          key={idx}
+                          className="flex justify-between text-muted-foreground"
+                        >
+                          <span>
+                            {p.name} (x{p.quantity})
+                          </span>
+                          <span>{(p.price * p.quantity).toFixed(2)} PLN</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      Brak części
+                    </span>
+                  )}
+                </div>
+
+                <div className="border-t pt-2">
+                  <p className="font-semibold mb-1">Robocizna:</p>
+                  {estimate.actions.length > 0 ? (
+                    <ul className="space-y-1">
+                      {estimate.actions.map((a, idx) => (
+                        <li
+                          key={idx}
+                          className="flex justify-between text-muted-foreground"
+                        >
+                          <span>{a.name}</span>
+                          <span>{a.price.toFixed(2)} PLN</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      Brak usług
+                    </span>
+                  )}
+                </div>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">

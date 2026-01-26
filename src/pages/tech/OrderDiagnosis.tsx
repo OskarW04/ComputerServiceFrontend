@@ -229,7 +229,6 @@ export default function OrderDiagnosis() {
                   Trwa diagnoza. Po zakończeniu wprowadź notatki i utwórz
                   kosztorys.
                 </p>
-                {/* Quote creation is handled in the Quote card below */}
               </div>
             ) : status === "WAITING_FOR_ACCEPTANCE" ? (
               <div className="flex items-center gap-2 text-yellow-600 bg-yellow-50 p-2 rounded">
@@ -278,18 +277,84 @@ export default function OrderDiagnosis() {
               </CardHeader>
               <CardContent>
                 {existingEstimate ? (
-                  <div className="space-y-2">
-                    <p>
-                      Status:{" "}
-                      <Badge>
-                        {existingEstimate.approved === null
-                          ? "Oczekuje"
-                          : existingEstimate.approved
-                            ? "Zatwierdzony"
-                            : "Odrzucony"}
-                      </Badge>
-                    </p>
-                    <p>Suma: {existingEstimate.totalCost} PLN</p>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <p className="font-semibold">
+                        Status:{" "}
+                        <Badge
+                          variant={
+                            existingEstimate.approved
+                              ? "default"
+                              : existingEstimate.approved === false
+                                ? "destructive"
+                                : "outline"
+                          }
+                          className={
+                            existingEstimate.approved
+                              ? "bg-green-600 hover:bg-green-700"
+                              : existingEstimate.approved === false
+                                ? "bg-red-600"
+                                : "bg-yellow-500 text-black hover:bg-yellow-600"
+                          }
+                        >
+                          {existingEstimate.approved === null
+                            ? "Oczekuje"
+                            : existingEstimate.approved
+                              ? "Zatwierdzony"
+                              : "Odrzucony"}
+                        </Badge>
+                      </p>
+                      <p className="font-bold text-lg">
+                        Suma: {existingEstimate.totalCost} PLN
+                      </p>
+                    </div>
+
+                    <div className="border rounded-md p-3 text-sm space-y-3">
+                      <div>
+                        <p className="font-semibold mb-1">Części:</p>
+                        {existingEstimate.parts.length > 0 ? (
+                          <ul className="space-y-1">
+                            {existingEstimate.parts.map((p, idx) => (
+                              <li
+                                key={idx}
+                                className="flex justify-between text-muted-foreground"
+                              >
+                                <span>
+                                  {p.name} (x{p.quantity})
+                                </span>
+                                <span>{p.price * p.quantity} PLN</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="text-muted-foreground italic">
+                            Brak części
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="border-t pt-2">
+                        <p className="font-semibold mb-1">Usługi:</p>
+                        {existingEstimate.actions.length > 0 ? (
+                          <ul className="space-y-1">
+                            {existingEstimate.actions.map((a, idx) => (
+                              <li
+                                key={idx}
+                                className="flex justify-between text-muted-foreground"
+                              >
+                                <span>{a.name}</span>
+                                <span>{a.price} PLN</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="text-muted-foreground italic">
+                            Brak usług
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     {status === "DIAGNOSING" && (
                       <Button
                         className="w-full mt-2 bg-green-600 hover:bg-green-700"
@@ -398,8 +463,9 @@ export default function OrderDiagnosis() {
                             )}
                             {filteredParts.map((p) => {
                               const currentQty =
-                                selectedParts.find((sp) => sp.partId === p.id)
-                                  ?.quantity || 0;
+                                selectedParts.find(
+                                  (sp) => String(sp.partId) === String(p.id),
+                                )?.quantity || 0;
                               return (
                                 <div
                                   key={p.id}
@@ -413,6 +479,11 @@ export default function OrderDiagnosis() {
                                       <span>Cena: {p.price} PLN</span>
                                       <span>Stan: {p.stockQuantity}</span>
                                     </div>
+                                    {currentQty > p.stockQuantity && (
+                                      <span className="text-xs text-amber-600 font-semibold mt-1">
+                                        Brak w magazynie - nastąpi zamówienie
+                                      </span>
+                                    )}
                                   </div>
 
                                   <div className="flex items-center gap-3">
@@ -423,12 +494,15 @@ export default function OrderDiagnosis() {
                                         className="h-8 w-8 text-destructive hover:bg-destructive/10"
                                         onClick={() => {
                                           const current = selectedParts.find(
-                                            (sp) => sp.partId === p.id,
+                                            (sp) =>
+                                              String(sp.partId) ===
+                                              String(p.id),
                                           );
                                           if (current && current.quantity > 1) {
                                             setSelectedParts(
                                               selectedParts.map((sp) =>
-                                                sp.partId === p.id
+                                                String(sp.partId) ===
+                                                String(p.id)
                                                   ? {
                                                       ...sp,
                                                       quantity: sp.quantity - 1,
@@ -439,7 +513,9 @@ export default function OrderDiagnosis() {
                                           } else {
                                             setSelectedParts(
                                               selectedParts.filter(
-                                                (sp) => sp.partId !== p.id,
+                                                (sp) =>
+                                                  String(sp.partId) !==
+                                                  String(p.id),
                                               ),
                                             );
                                           }
@@ -461,12 +537,13 @@ export default function OrderDiagnosis() {
                                       className="h-8 w-8 bg-background"
                                       onClick={() => {
                                         const current = selectedParts.find(
-                                          (sp) => sp.partId === p.id,
+                                          (sp) =>
+                                            String(sp.partId) === String(p.id),
                                         );
                                         if (current) {
                                           setSelectedParts(
                                             selectedParts.map((sp) =>
-                                              sp.partId === p.id
+                                              String(sp.partId) === String(p.id)
                                                 ? {
                                                     ...sp,
                                                     quantity: sp.quantity + 1,
@@ -481,7 +558,6 @@ export default function OrderDiagnosis() {
                                           ]);
                                         }
                                       }}
-                                      disabled={currentQty >= p.stockQuantity}
                                     >
                                       +
                                     </Button>
@@ -500,7 +576,9 @@ export default function OrderDiagnosis() {
                               .filter((s) => selectedServices.includes(s.id))
                               .reduce((acc, s) => acc + s.price, 0) +
                               selectedParts.reduce((acc, sp) => {
-                                const p = parts.find((p) => p.id === sp.partId);
+                                const p = parts.find(
+                                  (p) => String(p.id) === String(sp.partId),
+                                );
                                 return acc + (p ? p.price * sp.quantity : 0);
                               }, 0)}{" "}
                             PLN
@@ -567,7 +645,9 @@ export default function OrderDiagnosis() {
                     Części do wymiany (z kosztorysu)
                   </h3>
                   {existingEstimate?.parts?.map((part, idx) => {
-                    const stockPart = parts.find((p) => p.id === part.id);
+                    const stockPart = parts.find(
+                      (p) => String(p.id) === String(part.id),
+                    );
                     return (
                       <div
                         key={idx}
