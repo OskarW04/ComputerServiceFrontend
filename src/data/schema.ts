@@ -46,7 +46,6 @@ export interface SparePart {
   type: string;
   stockQuantity: number;
   price: number;
-  minQuantity?: number;
 }
 
 export interface ServiceAction {

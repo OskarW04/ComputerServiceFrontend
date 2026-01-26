@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/data/api";
-import type { RepairOrder, Client, Employee } from "@/data/schema";
+import type { RepairOrder } from "@/data/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -18,11 +18,9 @@ export default function OfficeOrderList() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [ordersData, employeesData, clientsData] = (await Promise.all([
-        api.orders.getAll(),
-        api.employees.getAll(),
-        api.clients.getAll(),
-      ])) as [RepairOrder[], Employee[], Client[]];
+      const [ordersData] = (await Promise.all([api.orders.getAll()])) as [
+        RepairOrder[],
+      ];
 
       const enrichedOrders = ordersData.map((order: RepairOrder) => {
         // Resolve Technician Name
@@ -30,28 +28,11 @@ export default function OfficeOrderList() {
         if (!technicianName && order.assignedTechnician) {
           technicianName = `${order.assignedTechnician.firstName} ${order.assignedTechnician.lastName}`;
         }
-        if (!technicianName && order.assignedTechnicianId) {
-          const tech = employeesData.find(
-            (e) => e.id === order.assignedTechnicianId,
-          );
-          if (tech) {
-            technicianName = `${tech.firstName} ${tech.lastName}`;
-          }
-        }
-
-        // Resolve Client Name
-        let clientName = order.clientName;
-        if (!clientName && order.clientId) {
-          const client = clientsData.find((c) => c.id === order.clientId);
-          if (client) {
-            clientName = `${client.firstName} ${client.lastName}`;
-          }
-        }
 
         return {
           ...order,
-          clientName: clientName || "Nieznany",
-          technicianName: technicianName, // Let the column cell handle the fallback to "Nieprzypisany" or handle it here
+          clientName: order.clientName || "Nieznany",
+          technicianName: technicianName || "Nieprzypisany",
         };
       });
 

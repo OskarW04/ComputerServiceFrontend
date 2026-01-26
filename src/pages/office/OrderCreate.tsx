@@ -75,6 +75,7 @@ export default function OrderCreate() {
                 onValueChange={(value) =>
                   setFormData({ ...formData, clientId: value })
                 }
+                value={formData.clientId}
                 required
               >
                 <SelectTrigger>

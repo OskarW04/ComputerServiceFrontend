@@ -51,7 +51,6 @@ export default function WarehouseInventory() {
     name: "",
     category: "",
     quantity: "",
-    minQuantity: "",
     price: "",
   });
 
@@ -82,7 +81,6 @@ export default function WarehouseInventory() {
         name: newPart.name,
         type: newPart.category,
         stockQuantity: parseInt(newPart.quantity) || 0,
-        minQuantity: parseInt(newPart.minQuantity) || 0,
         price: parseFloat(newPart.price) || 0,
       };
 
@@ -96,7 +94,6 @@ export default function WarehouseInventory() {
         name: "",
         category: "",
         quantity: "",
-        minQuantity: "",
         price: "",
       });
       toast.success("Część dodana pomyślnie!");
@@ -226,7 +223,7 @@ export default function WarehouseInventory() {
       header: "Status",
       cell: ({ row }) => {
         const part = row.original;
-        const isLowStock = part.stockQuantity < (part.minQuantity || 5); // Default if minQuantity missing
+        const isLowStock = part.stockQuantity < 5;
         return (
           <Badge variant={isLowStock ? "destructive" : "outline"}>
             {isLowStock ? "Niski Stan" : "Dostępny"}
@@ -441,31 +438,17 @@ export default function WarehouseInventory() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="minQuantity">Min. Ilość</Label>
+                        <Label htmlFor="price">Cena (PLN)</Label>
                         <Input
-                          id="minQuantity"
+                          id="price"
                           type="number"
-                          value={newPart.minQuantity}
+                          step="0.01"
+                          value={newPart.price}
                           onChange={(e) =>
-                            setNewPart({
-                              ...newPart,
-                              minQuantity: e.target.value,
-                            })
+                            setNewPart({ ...newPart, price: e.target.value })
                           }
                         />
                       </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="price">Cena (PLN)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        value={newPart.price}
-                        onChange={(e) =>
-                          setNewPart({ ...newPart, price: e.target.value })
-                        }
-                      />
                     </div>
                   </div>
                   <DialogFooter>
