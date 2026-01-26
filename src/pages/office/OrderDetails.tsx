@@ -153,8 +153,7 @@ export default function OfficeOrderDetails() {
         method: paymentMethod,
       });
 
-      // 3. Update Order Status
-      await api.orders.updateStatus(order.id, "COMPLETED");
+      // 3. Update local state
       const updatedOrder = await api.orders.getById(order.id);
       setOrder(updatedOrder || null);
 

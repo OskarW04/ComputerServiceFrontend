@@ -91,7 +91,7 @@ export default function ManagerOrders() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          {row.original.status === "WAITING_FOR_TECHNICIAN" && (
+          {row.original.status === "NEW" && (
             <Button
               variant="outline"
               size="sm"
