@@ -20,16 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { formatStatus } from "@/lib/utils";
 
@@ -39,9 +29,6 @@ export default function ManagerOrders() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<RepairOrder | null>(null);
   const [selectedTech, setSelectedTech] = useState("");
-  // Archive dialog state
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [orderToArchive, setOrderToArchive] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,23 +54,6 @@ export default function ManagerOrders() {
     setSelectedOrder(order);
     setSelectedTech(order.assignedTechnicianId || "");
     setAssignOpen(true);
-  };
-
-  const handleArchiveConfirm = async () => {
-    if (orderToArchive) {
-      // Mock archive - in real app update status or move to archive table
-      await api.orders.updateStatus(orderToArchive, "CANCELLED"); // Using CANCELLED as proxy for now
-      const updatedOrders = await api.orders.getAll();
-      setOrders(updatedOrders);
-      toast.success("Zlecenie zarchiwizowane.");
-      setArchiveOpen(false);
-      setOrderToArchive(null);
-    }
-  };
-
-  const handleArchiveClick = (id: string) => {
-    setOrderToArchive(id);
-    setArchiveOpen(true);
   };
 
   const columns: ColumnDef<RepairOrder>[] = [
@@ -128,13 +98,6 @@ export default function ManagerOrders() {
           >
             Przypisz
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleArchiveClick(row.original.id)}
-          >
-            Archiwizuj
-          </Button>
         </div>
       ),
     },
@@ -174,23 +137,6 @@ export default function ManagerOrders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Czy na pewno zarchiwizować?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Zlecenie zostanie oznaczone jako anulowane/zarchiwizowane.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchiveConfirm}>
-              Archiwizuj
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

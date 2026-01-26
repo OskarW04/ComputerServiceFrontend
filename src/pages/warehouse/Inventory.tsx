@@ -56,7 +56,6 @@ export default function WarehouseInventory() {
   const [newOrder, setNewOrder] = useState({
     sparePartId: "",
     quantity: "",
-    estimatedDelivery: "",
   });
 
   useEffect(() => {
@@ -105,19 +104,25 @@ export default function WarehouseInventory() {
   };
 
   const handleOrderParts = async () => {
-    // Mock ordering parts
-    const order: PartOrder = {
-      id: Math.random().toString(36).substr(2, 9),
-      sparePart: { id: newOrder.sparePartId } as unknown as SparePart,
-      orderDate: new Date().toISOString(),
-      estimatedDelivery: newOrder.estimatedDelivery,
-      status: "ORDERED",
-      quantity: parseInt(newOrder.quantity),
-    };
-    setOrders([...orders, order]);
-    setOrderPartsOpen(false);
-    setNewOrder({ sparePartId: "", quantity: "", estimatedDelivery: "" });
-    toast.success("Zamówienie złożone pomyślnie!");
+    try {
+      const part = parts.find((p) => p.id === newOrder.sparePartId);
+      if (!part) return;
+
+      await api.partOrders.create({
+        sparePart: part,
+        quantity: parseInt(newOrder.quantity),
+        orderDate: new Date().toISOString(),
+      });
+
+      const updatedOrders = await api.partOrders.getAll();
+      setOrders(updatedOrders);
+      setOrderPartsOpen(false);
+      setNewOrder({ sparePartId: "", quantity: "" });
+      toast.success("Zamówienie złożone pomyślnie!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Błąd składania zamówienia");
+    }
   };
 
   const handleReleasePart = async () => {
@@ -128,13 +133,19 @@ export default function WarehouseInventory() {
       toast.error("Brak wystarczającej ilości na stanie!");
       return;
     }
-    // Update part quantity (mock)
-    // In real app we'd call api.parts.update or api.parts.release
-    // We'll mock update locally and assume API call
-    const updatedPart = { ...part, stockQuantity: part.stockQuantity - qty };
-    setParts(parts.map((p) => (p.id === part.id ? updatedPart : p)));
-    setReleasePartOpen(false);
-    toast.success(`Wydano ${qty} szt. ${part.name}`);
+
+    try {
+      await api.parts.consume(part.id, qty);
+
+      const updatedParts = await api.parts.getAll();
+      setParts(updatedParts);
+
+      setReleasePartOpen(false);
+      toast.success(`Wydano ${qty} szt. ${part.name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Błąd wydawania części");
+    }
   };
 
   const handleReceiveDelivery = async (orderId: string) => {
@@ -241,8 +252,8 @@ export default function WarehouseInventory() {
       header: "ID Zamówienia",
     },
     {
-      accessorKey: "sparePartId",
-      header: "ID Części",
+      accessorKey: "sparePart.name",
+      header: "Część",
     },
     {
       accessorKey: "quantity",
@@ -307,9 +318,6 @@ export default function WarehouseInventory() {
             setNewOrder({
               sparePartId: row.original.partId,
               quantity: row.original.missing.toString(),
-              estimatedDelivery: new Date(Date.now() + 86400000 * 2)
-                .toISOString()
-                .split("T")[0],
             });
             setOrderPartsOpen(true);
           }}
@@ -363,20 +371,6 @@ export default function WarehouseInventory() {
                     value={newOrder.quantity}
                     onChange={(e) =>
                       setNewOrder({ ...newOrder, quantity: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="delivery-date">Przewidywana Dostawa</Label>
-                  <Input
-                    id="delivery-date"
-                    type="date"
-                    value={newOrder.estimatedDelivery}
-                    onChange={(e) =>
-                      setNewOrder({
-                        ...newOrder,
-                        estimatedDelivery: e.target.value,
-                      })
                     }
                   />
                 </div>
